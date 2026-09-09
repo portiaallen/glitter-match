@@ -162,6 +162,8 @@ export interface SolvabilityReport {
 
 /**
  * Bounded swap search. This is a foundation for solvability testing, not a proof engine.
+ * Prefer `searchSolvability` when you need cascade simulation and explicit SOLVED /
+ * NOT FOUND WITHIN SEARCH LIMIT / INVALID statuses.
  * Authors should still playtest; Extra Hard levels must remain solvable without Special Icons.
  */
 export function estimateSolvability(

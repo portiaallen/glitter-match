@@ -38,9 +38,14 @@ export const edgeSchema = z
   .object({
     from: z.string().min(1),
     to: z.string().min(1),
-    direction: z.string().optional(),
+    direction: z.string().min(1).optional(),
+    orientation: z.string().min(1).optional(),
+    label: z.string().min(1).optional(),
     bidirectional: z.boolean().optional(),
+    traversal: z.enum(["both", "forward"]).optional(),
     kind: z.enum(["adjacent", "portal", "bridge"]).optional(),
+    allowsMatch: z.boolean().optional(),
+    allowsSwap: z.boolean().optional(),
   })
   .strict();
 
@@ -48,6 +53,8 @@ export const flowSchema = z
   .object({
     from: z.string().min(1),
     to: z.string().min(1),
+    kind: z.enum(["gravity", "portal", "branch", "teleport"]).optional(),
+    label: z.string().min(1).optional(),
   })
   .strict();
 
@@ -62,17 +69,22 @@ export const portalSchema = z
   })
   .strict();
 
+export const rotationSchema = z
+  .object({
+    incrementDegrees: z.number(),
+    rotatable: z.boolean(),
+    occupantCycles: z.array(z.array(z.string().min(1)).min(2)).optional(),
+    cyclePresentationPositions: z.boolean().optional(),
+    remapDirections: z.boolean().optional(),
+    directionMap: z.record(z.string().min(1)).optional(),
+  })
+  .strict();
+
 export const sectionSchema = z
   .object({
     id: z.string().min(1),
     cellIds: z.array(z.string().min(1)).min(1),
-    rotation: z
-      .object({
-        incrementDegrees: z.number(),
-        rotatable: z.boolean(),
-      })
-      .strict()
-      .optional(),
+    rotation: rotationSchema.optional(),
     chamber: z.string().optional(),
     layer: z.string().optional(),
   })

@@ -6,6 +6,7 @@ import { getCell } from "./graph.js";
 export interface SerializedBoardState {
   definition: BoardDefinition;
   occupants: Record<string, string | null>;
+  rotation?: Board["rotation"];
 }
 
 function sortById<T extends { id: string }>(items: readonly T[]): T[] {
@@ -72,7 +73,11 @@ export function serializeBoardState(definition: BoardDefinition, board: Board): 
     const occupant = getCell(board, id).occupant;
     occupants[id] = occupant.type === "icon" ? occupant.iconId : null;
   }
-  return { definition: canonicalizeBoardDefinition(definition), occupants };
+  return {
+    definition: canonicalizeBoardDefinition(definition),
+    occupants,
+    rotation: structuredClone(board.rotation),
+  };
 }
 
 export function occupantsFromSerialized(state: SerializedBoardState): Record<string, Occupant> {

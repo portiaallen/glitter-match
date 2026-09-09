@@ -112,7 +112,7 @@ function detectAligned(board: Board, rules: MatchRules, registry: IconRegistry):
     }
     const outgoing = board.topology.directed[from] ?? [];
     for (const edge of outgoing) {
-      if (!edge.direction || edge.kind === "portal" && !board.topology.portalsConductMatches) {
+      if (!edge.direction || !edge.allowsMatch || (edge.kind === "portal" && !board.topology.portalsConductMatches)) {
         continue;
       }
       const walk = walkDirection(board, from, edge.direction, registry);
@@ -147,7 +147,9 @@ function walkDirection(
   const icons = [iconAt(board, start)!];
 
   while (true) {
-    const next = (board.topology.directed[current] ?? []).find((edge) => edge.direction === direction);
+    const next = (board.topology.directed[current] ?? []).find(
+      (edge) => edge.direction === direction && edge.allowsMatch,
+    );
     if (!next || visited.has(next.to)) {
       break;
     }
@@ -184,6 +186,7 @@ function detectJunctionPatterns(board: Board, rules: MatchRules, registry: IconR
     const rays: CellId[][] = [];
     const directions = new Set(
       (board.topology.directed[pivot] ?? [])
+        .filter((edge) => edge.allowsMatch)
         .map((edge) => edge.direction)
         .filter((direction): direction is string => Boolean(direction)),
     );

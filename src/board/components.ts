@@ -19,9 +19,7 @@ export function adjacencyMap(definition: BoardDefinition): Map<CellId, Set<CellI
 
   for (const edge of definition.adjacency) {
     add(edge.from, edge.to);
-    if (edge.bidirectional ?? true) {
-      add(edge.to, edge.from);
-    }
+    add(edge.to, edge.from);
   }
 
   for (const portal of definition.portals ?? []) {

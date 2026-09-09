@@ -20,3 +20,5 @@ export * from "./ui/index.js";
 export * from "./debug/index.js";
 export * from "./content/index.js";
 export * from "./lab/index.js";
+export * from "./solvability/index.js";
+export * from "./replay/index.js";

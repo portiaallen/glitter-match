@@ -132,7 +132,7 @@ export function compileBoardDocument(document: BoardDocument): BoardDefinition {
   };
 
   const issues = validateBoardDefinition(definition);
-  throwIfErrors(issues, `Board document "${document.id}" is invalid`);
+  throwIfErrors(issues, "BoardValidationError");
   return definition;
 }
 

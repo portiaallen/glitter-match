@@ -1,4 +1,5 @@
 import { createBoard, getCell } from "../board/graph.js";
+import { rotateSection } from "../board/rotation.js";
 import type { Board, BoardDefinition } from "../board/types.js";
 import { compileBoardDocument, defaultLabMatchRules, type BoardDocument } from "../board/document.js";
 import { runCascade, type CascadeReport } from "../cascade/index.js";
@@ -18,6 +19,12 @@ import { createRandomSource, type RandomSource } from "../random/index.js";
 import { issue, throwIfErrors } from "../validation.js";
 import { explainInteraction, type InteractionExplanation } from "../board/explain.js";
 import { inspectPlayableBoard, type BoardInspection } from "../debug/inspect.js";
+import {
+  appendReplayEvent,
+  createEmptyTape,
+  type ReplayTape,
+} from "../replay/index.js";
+import { searchSolvability, type SolvabilitySearchReport } from "../solvability/index.js";
 
 export interface PlaygroundOptions {
   document: BoardDocument;
@@ -46,6 +53,7 @@ export class BoardPlayground {
   stats: GameStats;
   lastCascade: CascadeReport | null = null;
   cascadeCount = 0;
+  tape: ReplayTape;
   private random: RandomSource;
   private readonly objective: Objective | null;
 
@@ -62,6 +70,7 @@ export class BoardPlayground {
       ? createObjective(options.document.demoObjective as ObjectiveDefinition)
       : null;
     this.board = this.placeBoard();
+    this.tape = createEmptyTape(this.seed, this.definition, this.board);
     if (options.resolveInitialMatches) {
       this.resolveMatches();
     }
@@ -104,8 +113,36 @@ export class BoardPlayground {
       swapOccupants(this.board, a, b);
       return { ok: false, reason: "That swap does not create a match." };
     }
+    this.tape = appendReplayEvent(this.tape, { kind: "player-move", a, b });
+    this.tape = appendReplayEvent(this.tape, { kind: "rng-decision", purpose: "pre-cascade", snapshot: this.random.snapshot() });
     const cascade = this.resolveMatches();
     return { ok: true, cascade };
+  }
+
+  rotate(sectionId: string, steps = 1) {
+    const result = rotateSection(this.board, sectionId, steps);
+    this.tape = appendReplayEvent(this.tape, {
+      kind: "rotation",
+      sectionId: result.sectionId,
+      steps,
+      visualAngle: result.visualAngle,
+    });
+    return result;
+  }
+
+  solvability(isGoal: (board: Board, stats: GameStats) => boolean, limits?: { maxDepth?: number; maxNodes?: number }): SolvabilitySearchReport {
+    return searchSolvability({
+      board: this.board,
+      definition: this.definition,
+      matchRules: this.matchRules,
+      iconRegistry: this.registries.icons,
+      obstacleRegistry: this.registries.obstacles,
+      iconPool: this.iconPool,
+      seed: this.seed,
+      isGoal,
+      maxDepth: limits?.maxDepth,
+      maxNodes: limits?.maxNodes,
+    });
   }
 
   forceOccupants(occupants: Record<string, string | null>): void {
@@ -186,6 +223,22 @@ export class BoardPlayground {
     });
     this.lastCascade = report;
     this.cascadeCount = report.combo;
+    const cleared = report.steps.flatMap((step) => step.clearedCellIds);
+    this.tape = appendReplayEvent(this.tape, {
+      kind: "match-detection",
+      combo: report.combo,
+      groupCount: report.steps.filter((step) => step.phase === "detect").reduce((sum, step) => sum + step.matches.length, 0),
+      cellIds: [...new Set(cleared)].sort(),
+    });
+    this.tape = appendReplayEvent(this.tape, { kind: "cascade", combo: report.combo, clearedCellIds: cleared });
+    const moved = report.steps.flatMap((step) => step.moved);
+    if (moved.length > 0) {
+      this.tape = appendReplayEvent(this.tape, { kind: "board-movement", moves: moved });
+    }
+    const progress = this.objectiveProgress();
+    if (progress) {
+      this.tape = appendReplayEvent(this.tape, { kind: "objective", complete: progress.complete, label: progress.label });
+    }
     return report;
   }
 }

@@ -17,6 +17,11 @@
         Seed
         <input id="seed" type="text" value="lab-seed" autocomplete="off" />
       </label>
+      <fieldset class="mode-switch">
+        <legend>Mode</legend>
+        <label><input type="radio" name="lab-mode" id="mode-play" value="play" checked /> Play / inspect</label>
+        <label><input type="radio" name="lab-mode" id="mode-author" value="author" /> Graph authoring</label>
+      </fieldset>
       <button type="button" id="reseed">Reseed / reload</button>
     </header>
     <div class="layout">
@@ -40,7 +45,8 @@
           <label><input type="checkbox" id="layer-coords" /> Coordinates</label>
           <label><input type="checkbox" id="layer-matches" checked /> Matches</label>
           <label><input type="checkbox" id="layer-moves" checked /> Legal moves</label>
-          <label><input type="checkbox" id="layer-flow" /> Flow</label>
+          <label><input type="checkbox" id="layer-flow" /> Flow arrows</label>
+          <label><input type="checkbox" id="layer-direction" checked /> Direction labels</label>
         </fieldset>
         <fieldset>
           <legend>Accessibility</legend>
@@ -72,6 +78,43 @@
           <button type="button" id="resolve">Resolve matches</button>
           <button type="button" id="recover">Recover dead board</button>
         </div>
+        <section id="author-panel" hidden>
+          <h3>Graph Authoring Helper</h3>
+          <p class="hint">This edits an explicit graph. Nearby cells stay disconnected until you author an edge.</p>
+          <fieldset>
+            <legend>Tool</legend>
+            <label><input type="radio" name="author-tool" value="select" checked /> Select / move</label>
+            <label><input type="radio" name="author-tool" value="add" /> Add cell</label>
+            <label><input type="radio" name="author-tool" value="connect" /> Connect (edge)</label>
+            <label><input type="radio" name="author-tool" value="flow" /> Flow edge</label>
+            <label><input type="radio" name="author-tool" value="portal" /> Portal</label>
+            <label><input type="radio" name="author-tool" value="delete" /> Delete cell</label>
+          </fieldset>
+          <label class="field">Selected cell id
+            <input id="cell-id" type="text" autocomplete="off" aria-label="Edit selected cell id" />
+          </label>
+          <label class="field">Edge direction
+            <input id="edge-direction" type="text" placeholder="e.g. along, n, cw" autocomplete="off" />
+          </label>
+          <label class="field">Traversal
+            <select id="edge-traversal">
+              <option value="both">both</option>
+              <option value="forward">forward</option>
+            </select>
+          </label>
+          <label><input type="checkbox" id="snap" /> Snap placement (visual aid only)</label>
+          <div class="actions">
+            <button type="button" id="connect-nearby">Connect nearby (optional)</button>
+            <button type="button" id="export-board">Export JSON</button>
+            <button type="button" id="import-board">Import JSON</button>
+            <button type="button" id="apply-author">Play this graph</button>
+          </div>
+          <label class="field">Board JSON
+            <textarea id="board-json" spellcheck="false" aria-label="Board definition JSON"></textarea>
+          </label>
+          <h3>Validation</h3>
+          <pre id="author-errors" role="status"></pre>
+        </section>
         <p id="notes" class="notes"></p>
       </aside>
     </div>

@@ -59,6 +59,9 @@ export function explainInteraction(
     reasons.push(
       `The board definition connects "${a}" to "${b}" with a ${edgeKind ?? "adjacent"} edge` +
         (directed?.direction ? ` (direction "${directed.direction}")` : "") +
+        (directed?.orientation ? ` orientation "${directed.orientation}"` : "") +
+        (directed && !directed.allowsSwap ? " (swap disabled)" : "") +
+        (directed && !directed.allowsMatch ? " (match disabled)" : "") +
         ".",
     );
   } else {
