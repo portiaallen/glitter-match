@@ -8,6 +8,16 @@ describe("land registry", () => {
     const lands = createLandRegistry();
     expect(lands.list().map((land) => land.id)).toEqual([...LAND_IDS]);
     expect(LAND_CATALOG).toHaveLength(8);
+    expect(LAND_CATALOG.map((land) => land.philosophicalQuestion)).toEqual([
+      "Who are you?",
+      "How do you express yourself?",
+      "What connects you?",
+      "What are you becoming?",
+      "What do you believe?",
+      "Can you flow?",
+      "What will you protect?",
+      "What is possible?",
+    ]);
     expect(() => throwIfErrors(lands.validateIntegrity())).not.toThrow();
   });
 

@@ -1,1 +1,8 @@
-export { createMechanicRegistry, MechanicRegistry, type MechanicDefinition } from "./registry.js";
+export {
+  createMechanicRegistry,
+  MechanicRegistry,
+  type MechanicActivation,
+  type MechanicDefinition,
+  type MechanicHandler,
+  type MechanicState,
+} from "./registry.js";

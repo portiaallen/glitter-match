@@ -1,5 +1,12 @@
-export { levelDefinitionSchema, parseLevelJson, type LevelDefinition } from "./schema.js";
 export {
+  LEVEL_DNA_REQUIRED_FOR_PRODUCTION,
+  levelDefinitionSchema,
+  parseLevelJson,
+  SCHEMA_VERSION,
+  type LevelDefinition,
+} from "./schema.js";
+export {
+  isLaboratoryFixtureId,
   loadAndValidateLevel,
   toBoardDefinition,
   validateLevel,

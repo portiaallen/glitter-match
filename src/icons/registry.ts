@@ -19,6 +19,9 @@ interface IconBase {
 export interface OrdinaryIcon extends IconBase {
   kind: "ordinary";
   landId: LandId;
+  familyId: string;
+  contentVersion: string;
+  notes?: string;
 }
 
 export interface GlitterIcon extends IconBase {
@@ -66,6 +69,18 @@ export class IconRegistry {
     }
 
     if (icon.kind === "ordinary") {
+      if (!icon.familyId) {
+        throwIfErrors(
+          [issue("icon.family_missing", `icons.${icon.id}`, `Ordinary icon "${icon.id}" must declare a familyId.`)],
+          "Icon registry rejected landless ordinary icon family",
+        );
+      }
+      if (!icon.contentVersion) {
+        throwIfErrors(
+          [issue("icon.version_missing", `icons.${icon.id}`, `Ordinary icon "${icon.id}" must declare contentVersion.`)],
+          "Icon registry rejected unversioned ordinary icon",
+        );
+      }
       const family = this.ordinaryByLand.get(icon.landId);
       if (!family) {
         throwIfErrors(
@@ -75,6 +90,12 @@ export class IconRegistry {
         return;
       }
       family.add(icon.id);
+    }
+    if (icon.kind === "special" && icon.universal !== true) {
+      throwIfErrors(
+        [issue("icon.special_not_universal", `icons.${icon.id}`, "Special Icons must be universal and belong to no Land.")],
+        "Icon registry rejected land-owned Special Icon",
+      );
     }
 
     if (icon.kind === "glitter" && icon.id !== GLITTER_ICON_ID) {
@@ -118,6 +139,41 @@ export class IconRegistry {
     return [...ids].map((id) => this.get(id) as OrdinaryIcon);
   }
 
+  /**
+   * Reassignment is forbidden unless the caller supplies a new contentVersion.
+   * Ordinary icons cannot silently become universal or change Land.
+   */
+  reassignOrdinaryLand(id: IconId, nextLand: LandId, nextContentVersion: string): void {
+    const icon = this.get(id);
+    if (icon.kind !== "ordinary") {
+      throwIfErrors(
+        [issue("icon.reassign_kind", `icons.${id}`, `Only ordinary icons can be land-reassigned. "${id}" is ${icon.kind}.`)],
+        "Illegal icon reassignment",
+      );
+      return;
+    }
+    if (nextLand === icon.landId) {
+      return;
+    }
+    if (!nextContentVersion || nextContentVersion === icon.contentVersion) {
+      throwIfErrors(
+        [
+          issue(
+            "icon.reassign_version",
+            `icons.${id}`,
+            `Ordinary icon "${id}" cannot move from ${icon.landId} to ${nextLand} without an explicit content-version change.`,
+          ),
+        ],
+        "Illegal icon reassignment",
+      );
+    }
+    this.ordinaryByLand.get(icon.landId)?.delete(id);
+    icon.landId = nextLand;
+    icon.familyId = `${nextLand}.ordinary`;
+    icon.contentVersion = nextContentVersion;
+    this.ordinaryByLand.get(nextLand)?.add(id);
+  }
+
   validateIntegrity(): ValidationIssue[] {
     const issues: ValidationIssue[] = [];
     const glitter = [...this.icons.values()].filter((icon) => icon.kind === "glitter");
@@ -148,6 +204,14 @@ export class IconRegistry {
       }
       if (icon.kind === "glitter" && icon.landId !== null) {
         issues.push(issue("icon.glitter_has_land", "icons.glitter", "The Glitter Icon belongs to no Land."));
+      }
+      if (icon.kind === "special") {
+        if (icon.universal !== true) {
+          issues.push(issue("icon.special_land", `icons.${icon.id}`, "Special Icons belong to no Land."));
+        }
+      }
+      if (icon.kind === "ordinary" && icon.landId && !LAND_IDS.includes(icon.landId)) {
+        issues.push(issue("icon.unauthorized_land", `icons.${icon.id}`, `Unauthorized Land "${icon.landId}".`));
       }
     }
     return issues;
