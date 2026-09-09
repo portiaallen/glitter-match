@@ -103,3 +103,25 @@ Preferred extension points:
 - Cell `tags`, sections, portals
 
 Avoid: `if (land === "lumina")` inside detect/cascade.
+
+## Board documents vs levels
+
+Levels still require a Land, objectives, and campaign metadata. The Board Laboratory uses `BoardDocument` instead:
+
+- `purpose: "engine-fixture"`
+- no `land`, no rewards, no level numbers
+- `shape` is optional documentation
+- `connections` is the designer-facing alias for adjacency
+- `chambers` compile into sections
+- portals listed once are merged into the graph as `kind: "portal"` edges
+
+Pipeline: **Board Definition → Graph → Generic Engine**. Named silhouettes (heart, spiral, …) are fixtures, not code paths.
+
+## Serialization
+
+`serializeBoardDefinition` writes canonical JSON (sorted cells/edges). Deserialize through the Zod board schema. Round-trip must preserve ids, positions, adjacency, topology metadata, terrain, blockers, portals, and movement.
+
+## Validation
+
+`validateBoardDefinition` reports designer-facing issues: duplicate ids, bad references, self-edges, missing portals, unreachable cells when connectivity is required, flow cycles, isolated cells. Topology kind mismatches are warnings so authors are not forced into a closed set of shapes.
+

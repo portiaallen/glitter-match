@@ -1,0 +1,48 @@
+{
+  "id": "lab.diamond",
+  "status": "development",
+  "purpose": "engine-fixture",
+  "title": "Diamond",
+  "shape": "diamond",
+  "notes": "ENGINE TEST FIXTURE ONLY. Not a level, not assigned to a Land, no story or rewards. Graph-authored diamond; coordinates are layout only.",
+  "topology": {
+    "kind": "custom",
+    "notes": "Diamond-shaped playable region with an explicit graph. The engine does not know this is a diamond."
+  },
+  "cells": [
+    { "id": "n", "position": { "x": 0, "y": -2 }, "initialIcon": "dev.spark-b" },
+    { "id": "nw", "position": { "x": -1.2, "y": -1 }, "initialIcon": "dev.spark-a" },
+    { "id": "ne", "position": { "x": 1.2, "y": -1 }, "initialIcon": "dev.spark-c" },
+    { "id": "w", "position": { "x": -2, "y": 0 }, "initialIcon": "dev.spark-a", "terrain": "facet" },
+    { "id": "c", "position": { "x": 0, "y": 0 }, "initialIcon": "dev.spark-c", "terrain": "core" },
+    { "id": "e", "position": { "x": 2, "y": 0 }, "initialIcon": "dev.spark-a" },
+    { "id": "sw", "position": { "x": -1.2, "y": 1 }, "initialIcon": "dev.spark-b" },
+    { "id": "se", "position": { "x": 1.2, "y": 1 }, "initialIcon": "dev.spark-b" },
+    { "id": "s", "position": { "x": 0, "y": 2 }, "initialIcon": "dev.spark-a" }
+  ],
+  "connections": [
+    { "from": "n", "to": "nw", "direction": "sw" },
+    { "from": "n", "to": "ne", "direction": "se" },
+    { "from": "n", "to": "c", "direction": "s" },
+    { "from": "nw", "to": "w", "direction": "sw" },
+    { "from": "nw", "to": "c", "direction": "se" },
+    { "from": "ne", "to": "c", "direction": "sw" },
+    { "from": "ne", "to": "e", "direction": "se" },
+    { "from": "w", "to": "c", "direction": "e" },
+    { "from": "c", "to": "e", "direction": "e" },
+    { "from": "w", "to": "sw", "direction": "se" },
+    { "from": "c", "to": "sw", "direction": "sw" },
+    { "from": "c", "to": "se", "direction": "se" },
+    { "from": "e", "to": "se", "direction": "sw" },
+    { "from": "c", "to": "s", "direction": "s" },
+    { "from": "sw", "to": "s", "direction": "se" },
+    { "from": "se", "to": "s", "direction": "sw" }
+  ],
+  "iconPool": ["dev.spark-a", "dev.spark-b", "dev.spark-c"],
+  "matchRules": {
+    "minGroupSize": 3,
+    "modes": ["cluster", "aligned", "corner", "tee", "cross"]
+  },
+  "placement": { "mode": "authored" },
+  "movement": { "mode": "none", "refill": { "mode": "none" } }
+}

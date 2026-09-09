@@ -19,3 +19,4 @@ export * from "./audio/index.js";
 export * from "./ui/index.js";
 export * from "./debug/index.js";
 export * from "./content/index.js";
+export * from "./lab/index.js";

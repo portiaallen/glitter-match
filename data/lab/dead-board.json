@@ -1,0 +1,35 @@
+{
+  "id": "lab.dead-board",
+  "status": "development",
+  "purpose": "engine-fixture",
+  "title": "Dead Board",
+  "shape": "chevron",
+  "notes": "ENGINE TEST FIXTURE ONLY. Deterministic dead state: three A's that cannot form a 3-match with any single swap. Recovery uses the seeded shuffle.",
+  "topology": {
+    "kind": "branching",
+    "notes": "Five-cell chevron. Not a rectangle."
+  },
+  "cells": [
+    { "id": "p0", "position": { "x": -2, "y": 0 }, "initialIcon": "dev.spark-a" },
+    { "id": "p1", "position": { "x": -1, "y": -0.8 }, "initialIcon": "dev.spark-c" },
+    { "id": "p2", "position": { "x": 0, "y": 0 }, "initialIcon": "dev.spark-a" },
+    { "id": "p3", "position": { "x": 1, "y": -0.8 }, "initialIcon": "dev.spark-c" },
+    { "id": "p4", "position": { "x": 2, "y": 0 }, "initialIcon": "dev.spark-a" }
+  ],
+  "connections": [
+    { "from": "p0", "to": "p1" },
+    { "from": "p1", "to": "p2" },
+    { "from": "p2", "to": "p3" },
+    { "from": "p3", "to": "p4" }
+  ],
+  "iconPool": ["dev.spark-a", "dev.spark-c"],
+  "matchRules": { "minGroupSize": 3, "modes": ["cluster"] },
+  "placement": { "mode": "authored" },
+  "movement": { "mode": "none", "refill": { "mode": "none" } },
+  "fairness": { "onDeadBoard": "shuffle", "maxShuffleAttempts": 48 },
+  "demoObjective": {
+    "id": "lab-dead-score",
+    "type": "score",
+    "score": 9999
+  }
+}

@@ -39,7 +39,9 @@ src/
   audio/          Audio identity/control contracts
   debug/          Topology inspection + CLI
   content/        Production vs development packs
-data/dev/         Development-only fixture (not campaign content)
+data/dev/         Development-only level fixture (not campaign content)
+data/lab/         Board Laboratory topology fixtures (not levels)
+lab/              Developer Board Laboratory visualizer
 tests/            Engine tests (no UI)
 ```
 
@@ -86,6 +88,43 @@ Tests cover board graphs, irregular topology, adjacency, matching, cascade seque
 
 The same seed and authored start state must produce the same swaps, refills, and scores. Do not call `Math.random()` in engine code.
 
+## Board Laboratory
+
+A developer-only playground that loads irregular graphs into one generic engine:
+
+```bash
+npm run lab
+```
+
+Open http://localhost:5173. Fixtures: diamond, heart, ring, spiral, twin chambers, irregular islands, plus cascade / dead-board / seeded-fill proofs.
+
+These are **engine fixtures**, not levels. They have no Land, no level number, no story, and no rewards.
+
+Click two cells to see why they can or cannot interact (graph edges, not x±1/y±1). Toggle IDs, adjacency, portals, coordinates, matches, legal moves, and flow.
+
+## How to author an irregular board
+
+Prefer a `BoardDocument` (see `data/lab/*.json`):
+
+```json
+{
+  "id": "lab.my-shape",
+  "status": "development",
+  "purpose": "engine-fixture",
+  "title": "My shape",
+  "shape": "anything-you-want",
+  "topology": { "kind": "custom", "notes": "optional authoring vocabulary" },
+  "cells": [{ "id": "a", "position": { "x": 0, "y": 0 } }],
+  "connections": [{ "from": "a", "to": "b" }]
+}
+```
+
+`shape` is a human label. The engine never branches on it. New silhouettes do not require matcher changes.
+
+Serialize with `serializeBoardDefinition` / `deserializeBoardDefinition` (canonical JSON round-trip).
+
+Validate with `validateBoardDefinition` or `npm run debug -- validate data/lab/diamond.json`.
+
 ## How to add a new board topology
 
 1. Author cells and edges. Pick a `topology.kind` from the existing list (or `custom`).
@@ -95,6 +134,11 @@ The same seed and authored start state must produce the same swaps, refills, and
 5. Inspect with `npm run debug -- inspect path/to/level.json` or `dot` for Graphviz.
 
 You should not add a new match engine for a new shape.
+
+```bash
+npm run debug -- inspect data/lab/heart.json
+npm run debug -- why data/lab/heart.json --pair lo,ro
+```
 
 ## How to add a new mechanic safely
 

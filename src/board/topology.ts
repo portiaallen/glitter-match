@@ -12,6 +12,7 @@ export const TOPOLOGY_KINDS = [
   "portal-connected",
   "layered",
   "rotating",
+  "organic",
   "custom",
 ] as const;
 
@@ -27,4 +28,10 @@ export interface TopologyDescriptor {
   notes?: string;
   chambers?: string[];
   layers?: string[];
+  /**
+   * Reachability policy. Defaults to required except for topologies that
+   * are expected to contain separate regions (portal-connected, multi-chamber, twin-path).
+   * The engine never infers this from a shape name.
+   */
+  connectivity?: "required" | "optional";
 }

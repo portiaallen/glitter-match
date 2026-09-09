@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Glitter Match — Board Laboratory</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <a class="skip" href="#board">Skip to board</a>
+    <header class="top">
+      <div>
+        <p class="kicker">Development only · engine fixtures · not campaign content</p>
+        <h1>Board Laboratory</h1>
+      </div>
+      <label class="seed">
+        Seed
+        <input id="seed" type="text" value="lab-seed" autocomplete="off" />
+      </label>
+      <button type="button" id="reseed">Reseed / reload</button>
+    </header>
+    <div class="layout">
+      <nav class="rail" aria-label="Test topologies">
+        <h2>Fixtures</h2>
+        <p class="hint">Same matcher. Different graphs.</p>
+        <ul id="fixture-list"></ul>
+      </nav>
+      <main id="board" class="stage">
+        <svg id="canvas" role="img" aria-label="Board topology visualization"></svg>
+        <p id="status" class="status" role="status"></p>
+      </main>
+      <aside class="panel" aria-label="Debug overlays">
+        <h2>Visualizer</h2>
+        <fieldset>
+          <legend>Layers</legend>
+          <label><input type="checkbox" id="layer-ids" checked /> Cell IDs</label>
+          <label><input type="checkbox" id="layer-bounds" checked /> Cell boundaries</label>
+          <label><input type="checkbox" id="layer-edges" checked /> Adjacency</label>
+          <label><input type="checkbox" id="layer-portals" checked /> Portals / bridges</label>
+          <label><input type="checkbox" id="layer-coords" /> Coordinates</label>
+          <label><input type="checkbox" id="layer-matches" checked /> Matches</label>
+          <label><input type="checkbox" id="layer-moves" checked /> Legal moves</label>
+          <label><input type="checkbox" id="layer-flow" /> Flow</label>
+        </fieldset>
+        <fieldset>
+          <legend>Accessibility</legend>
+          <label><input type="checkbox" id="reduced-motion" /> Reduced motion</label>
+          <p class="hint">Icons use letter + pattern, not color alone.</p>
+        </fieldset>
+        <section>
+          <h3>Why interact?</h3>
+          <p class="hint">Click two cells. Graph edges decide, not x±1 / y±1.</p>
+          <pre id="why"></pre>
+        </section>
+        <section>
+          <h3>Matches</h3>
+          <pre id="matches"></pre>
+        </section>
+        <section>
+          <h3>Legal moves</h3>
+          <pre id="moves"></pre>
+        </section>
+        <section>
+          <h3>Cascade</h3>
+          <pre id="cascade"></pre>
+        </section>
+        <section>
+          <h3>Objective</h3>
+          <pre id="objective"></pre>
+        </section>
+        <div class="actions">
+          <button type="button" id="resolve">Resolve matches</button>
+          <button type="button" id="recover">Recover dead board</button>
+        </div>
+        <p id="notes" class="notes"></p>
+      </aside>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

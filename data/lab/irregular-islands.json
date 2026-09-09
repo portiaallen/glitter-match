@@ -1,0 +1,47 @@
+{
+  "id": "lab.irregular-islands",
+  "status": "development",
+  "purpose": "engine-fixture",
+  "title": "Irregular Islands",
+  "shape": "islands",
+  "notes": "ENGINE TEST FIXTURE ONLY. Floating-looking groups. Unusual portals/bridges connect them. This is not a traditional match-3 layout.",
+  "topology": {
+    "kind": "portal-connected",
+    "connectivity": "optional",
+    "notes": "Four visual islands. A and B are closer than A and C, but A connects to C, not B."
+  },
+  "cells": [
+    { "id": "a1", "position": { "x": -4.2, "y": -2.4 }, "initialIcon": "dev.spark-a" },
+    { "id": "a2", "position": { "x": -3.1, "y": -2.4 }, "initialIcon": "dev.spark-a" },
+    { "id": "a3", "position": { "x": -3.65, "y": -1.4 }, "initialIcon": "dev.spark-b" },
+    { "id": "b1", "position": { "x": -0.6, "y": -2.6 }, "initialIcon": "dev.spark-c" },
+    { "id": "b2", "position": { "x": 0.5, "y": -2.6 }, "initialIcon": "dev.spark-b" },
+    { "id": "b3", "position": { "x": 1.6, "y": -2.6 }, "initialIcon": "dev.spark-c" },
+    { "id": "c1", "position": { "x": -1.2, "y": 1.6 }, "initialIcon": "dev.spark-a" },
+    { "id": "c2", "position": { "x": 0, "y": 1.6 }, "initialIcon": "dev.spark-c" },
+    { "id": "c3", "position": { "x": 1.2, "y": 1.6 }, "initialIcon": "dev.spark-b" },
+    { "id": "c4", "position": { "x": 0, "y": 2.7 }, "initialIcon": "dev.spark-a" },
+    { "id": "d1", "position": { "x": 4.4, "y": 0.2 }, "initialIcon": "dev.spark-b" }
+  ],
+  "connections": [
+    { "from": "a1", "to": "a2" },
+    { "from": "a2", "to": "a3" },
+    { "from": "a3", "to": "a1" },
+    { "from": "b1", "to": "b2" },
+    { "from": "b2", "to": "b3" },
+    { "from": "c1", "to": "c2" },
+    { "from": "c2", "to": "c3" },
+    { "from": "c2", "to": "c4" },
+    { "from": "b3", "to": "c3", "kind": "bridge" }
+  ],
+  "portals": [
+    { "id": "a-to-c", "from": "a3", "to": "c1", "bidirectional": true },
+    { "id": "d-to-b", "from": "d1", "to": "b1", "bidirectional": true }
+  ],
+  "portalsConductMatches": true,
+  "portalsAllowSwap": true,
+  "iconPool": ["dev.spark-a", "dev.spark-b", "dev.spark-c"],
+  "matchRules": { "minGroupSize": 3, "modes": ["cluster"] },
+  "placement": { "mode": "authored" },
+  "movement": { "mode": "none", "refill": { "mode": "none" } }
+}

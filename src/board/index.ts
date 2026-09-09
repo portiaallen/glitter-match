@@ -32,3 +32,27 @@ export {
   setOccupant,
 } from "./graph.js";
 export { settleFlow, type PieceMove, type SettlementResult } from "./movement.js";
+export { validateBoardDefinition } from "./validate.js";
+export {
+  adjacencyMap,
+  connectedComponents,
+  connectivityRequired,
+  type ConnectedComponent,
+} from "./components.js";
+export {
+  boardDefinitionsEquivalent,
+  canonicalizeBoardDefinition,
+  deserializeBoardDefinition,
+  occupantsFromSerialized,
+  serializeBoardDefinition,
+  serializeBoardState,
+  type SerializedBoardState,
+} from "./serialize.js";
+export {
+  compileBoardDocument,
+  defaultLabMatchRules,
+  loadAndCompileBoardDocument,
+  parseBoardDocument,
+  type BoardDocument,
+} from "./document.js";
+export { explainInteraction, type InteractionExplanation } from "./explain.js";
