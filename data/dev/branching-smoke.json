@@ -1,0 +1,64 @@
+{
+  "id": "dev.branching-smoke",
+  "status": "development",
+  "land": "lumina",
+  "title": "DEV: Branching Smoke Test — not production content",
+  "board": {
+    "topology": {
+      "kind": "branching",
+      "notes": "Y-shaped graph used only to verify the engine. Not a production puzzle."
+    },
+    "cells": [
+      { "id": "hub", "position": { "x": 0, "y": 0 }, "initialIcon": "dev.spark-b" },
+      { "id": "left", "position": { "x": -1, "y": 0 }, "initialIcon": "dev.spark-a" },
+      { "id": "right", "position": { "x": 1, "y": 0 }, "initialIcon": "dev.spark-a" },
+      { "id": "mid", "position": { "x": 0, "y": 1 }, "initialIcon": "dev.spark-a" },
+      { "id": "tail", "position": { "x": 0, "y": 2 }, "initialIcon": "dev.spark-b" }
+    ],
+    "adjacency": [
+      { "from": "hub", "to": "left", "direction": "w" },
+      { "from": "hub", "to": "right", "direction": "e" },
+      { "from": "hub", "to": "mid", "direction": "s" },
+      { "from": "mid", "to": "tail", "direction": "s" }
+    ],
+    "movement": {
+      "mode": "none",
+      "refill": { "mode": "none" }
+    }
+  },
+  "iconPool": ["dev.spark-a", "dev.spark-b", "dev.spark-c"],
+  "matchRules": {
+    "minGroupSize": 3,
+    "modes": ["cluster"]
+  },
+  "objective": {
+    "id": "collect-a",
+    "type": "collection",
+    "iconId": "dev.spark-a",
+    "count": 3
+  },
+  "difficulty": {
+    "cognitive": 0,
+    "spatial": 0,
+    "notes": "Development fixture only."
+  },
+  "moveLimit": 10,
+  "timerMs": null,
+  "mastery": {
+    "noSpecialIcons": true
+  },
+  "rewards": [
+    { "kind": "score", "amount": 30 }
+  ],
+  "placement": {
+    "mode": "authored"
+  },
+  "swap": {
+    "requireMatch": true
+  },
+  "fairness": {
+    "onDeadBoard": "shuffle",
+    "maxShuffleAttempts": 8
+  },
+  "specialIconsAllowed": true
+}
