@@ -114,7 +114,7 @@ Obstacles expose blocking, match/movement/cascade hooks, serialization, and an a
 
 Movement is graph traversal. A level may author swap rules, constraints, directional/rotation flags, limits, and timing. Never `y + 1 = gravity` and never x/y neighbor inference.
 
-Match contracts (`standard-3+`, horizontal/vertical/diagonal, L, T, cross, cluster, pattern, directional, land-registered) map onto the existing engine modes. Land-specific match rules must register; they are not hardcoded.
+Match contracts (`standard-3+`, horizontal/vertical/diagonal, L, T, cross, cluster, pattern, directional, path, cycle, ring, land-registered) map onto engine modes. Executable rules live in the Match Engine Rule Registry. **Matching is graph-authoritative.** Land-specific match rules must register; they are not hardcoded. See `MATCH_RULES.md`.
 
 ## Twists, mastery, rewards
 

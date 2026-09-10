@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { createBoard, parseBoardDocument, type BoardDefinition, type BoardDocument, type Occupant } from "../src/board/index.js";
 import { createDevelopmentPack } from "../src/content/index.js";
-import { defaultMatchRules, type MatchRules } from "../src/matching/index.js";
 import { LAB_FIXTURE_FILES, type LabFixtureId } from "../src/lab/catalog.js";
+import { defaultMatchRules, MATCH_ENGINE_FIXTURE_FILES, type MatchEngineFixtureId, type MatchRules } from "../src/matching/index.js";
 
 export function pack() {
   return createDevelopmentPack();
@@ -10,6 +10,10 @@ export function pack() {
 
 export function loadLabDocument(id: LabFixtureId): BoardDocument {
   return parseBoardDocument(JSON.parse(readFileSync(LAB_FIXTURE_FILES[id], "utf8")));
+}
+
+export function loadMatchFixture(id: MatchEngineFixtureId): BoardDocument {
+  return parseBoardDocument(JSON.parse(readFileSync(MATCH_ENGINE_FIXTURE_FILES[id], "utf8")));
 }
 
 export function occupants(map: Record<string, string | null>): Record<string, Occupant> {

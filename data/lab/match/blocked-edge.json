@@ -1,0 +1,21 @@
+{
+  "id": "match.blocked-edge",
+  "status": "development",
+  "purpose": "engine-fixture",
+  "title": "Blocked edge",
+  "notes": "ENGINE TEST FIXTURE ONLY. allowsMatch false must prevent a 3-match across the blocked edge.",
+  "topology": { "kind": "linear" },
+  "cells": [
+    { "id": "a", "position": { "x": 0, "y": 0 }, "initialIcon": "dev.spark-a" },
+    { "id": "b", "position": { "x": 1, "y": 0 }, "initialIcon": "dev.spark-a" },
+    { "id": "c", "position": { "x": 2, "y": 0 }, "initialIcon": "dev.spark-a" }
+  ],
+  "connections": [
+    { "from": "a", "to": "b", "direction": "e", "allowsMatch": false, "allowsSwap": true },
+    { "from": "b", "to": "c", "direction": "e" }
+  ],
+  "iconPool": ["dev.spark-a"],
+  "matchRules": { "minGroupSize": 3, "modes": ["cluster", "aligned", "path"] },
+  "placement": { "mode": "authored" },
+  "movement": { "mode": "none", "refill": { "mode": "none" } }
+}

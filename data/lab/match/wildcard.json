@@ -1,0 +1,21 @@
+{
+  "id": "match.wildcard",
+  "status": "development",
+  "purpose": "engine-fixture",
+  "title": "Wildcard / Glitter interaction",
+  "notes": "ENGINE TEST FIXTURE ONLY. Universal Glitter Icon uses the existing universal-match contract.",
+  "topology": { "kind": "linear" },
+  "cells": [
+    { "id": "c0", "position": { "x": 0, "y": 0 }, "initialIcon": "dev.spark-a" },
+    { "id": "c1", "position": { "x": 1, "y": 0 }, "initialIcon": "glitter" },
+    { "id": "c2", "position": { "x": 2, "y": 0 }, "initialIcon": "dev.spark-a" }
+  ],
+  "connections": [
+    { "from": "c0", "to": "c1", "direction": "e" },
+    { "from": "c1", "to": "c2", "direction": "e" }
+  ],
+  "iconPool": ["dev.spark-a", "glitter"],
+  "matchRules": { "minGroupSize": 3, "modes": ["cluster"] },
+  "placement": { "mode": "authored" },
+  "movement": { "mode": "none", "refill": { "mode": "none" } }
+}
