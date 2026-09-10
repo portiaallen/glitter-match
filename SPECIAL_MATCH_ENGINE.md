@@ -180,7 +180,7 @@ Recommended cycle:
 3. Create specials / apply match resolution
 4. Settle
 5. Activate triggered specials / resolve effects
-6. Settle
+6. Settle again so special clears can flow into ordinary matches
 7. Detect again
 8. Evaluate objective / complete turn
 

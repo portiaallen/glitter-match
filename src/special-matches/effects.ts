@@ -89,8 +89,8 @@ export function consumeSpecialOccupantEffect(instance: SpecialMatchInstance): Pr
 }
 
 export function cellHasSpecial(board: Board, cellId: CellId): { typeId: string; instanceId: string } | undefined {
-  const occupant = getCell(board, cellId).occupant;
-  if (occupant.type === "special-match") {
+  const occupant = board.cells[cellId]?.occupant;
+  if (occupant?.type === "special-match") {
     return { typeId: occupant.typeId, instanceId: occupant.instanceId };
   }
   return undefined;

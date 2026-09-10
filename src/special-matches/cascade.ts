@@ -221,6 +221,13 @@ export function runCascade(ctx: CascadeContext): CascadeReport {
     }
     if (activation.applied.length > 0) {
       steps.push(emptyStep("special-activate", combo, []));
+      const afterSpecial = settleFlow(ctx.board);
+      steps.push({
+        ...emptyStep("move", combo, []),
+        moved: afterSpecial.moves.flatMap((move) =>
+          move.occupant.type === "icon" ? [{ from: move.from, to: move.to, iconId: move.occupant.iconId }] : [],
+        ),
+      });
     }
     specialEvents.push(...cancelOrphans(ctx.board, runtime));
     if (specialEvents.length > limits.maxEvents) {
