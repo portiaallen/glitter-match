@@ -29,6 +29,10 @@ export function applyObstacleSpecialResponses(
       allowed.push(effect);
       continue;
     }
+    if (!board.cells[cellId]) {
+      allowed.push(effect);
+      continue;
+    }
     const cell = getCell(board, cellId);
     if (cell.obstacles.length === 0) {
       allowed.push(effect);
