@@ -16,6 +16,9 @@ export const MATCH_CONTRACT_IDS = [
   "cluster",
   "pattern",
   "directional",
+  "path",
+  "cycle",
+  "ring",
   "land-registered",
 ] as const;
 
@@ -41,6 +44,9 @@ export const MATCH_CONTRACT_CATALOG: readonly MatchContractDefinition[] = [
   { id: "cross", engineModes: ["cross"], implemented: true, description: "Authored four-ray junction." },
   { id: "pattern", engineModes: ["aligned", "corner", "tee", "cross"], implemented: true, description: "Generic authored pattern matching." },
   { id: "directional", engineModes: ["aligned"], implemented: true, description: "Path-based walk of authored direction labels." },
+  { id: "path", engineModes: ["path"], implemented: true, description: "Simple authored-graph path of compatible occupants." },
+  { id: "cycle", engineModes: ["cycle"], implemented: true, description: "Simple graph cycle of compatible occupants." },
+  { id: "ring", engineModes: ["cycle"], implemented: true, description: "Alias for cycle matching; visual circularity is not required." },
   { id: "land-registered", engineModes: ["cluster"], implemented: false, description: "Reserved. Land-specific match rules register a handler; the engine never branches on land id." },
 ];
 

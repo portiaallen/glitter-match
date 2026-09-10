@@ -1,7 +1,7 @@
 /** Schema/content versions for independently versionable packs. */
 
-export const SCHEMA_VERSION = "6.0.0" as const;
-export const CONTENT_VERSION = "0.3.0-primitives" as const;
+export const SCHEMA_VERSION = "7.0.0" as const;
+export const CONTENT_VERSION = "0.4.0-match-rules" as const;
 
 export interface VersionRecord {
   schemaVersion: string;
@@ -44,8 +44,8 @@ export interface MigrationHook {
 
 export const MIGRATION_HOOKS: readonly MigrationHook[] = [
   {
-    fromSchemaVersion: "5.0.0",
+    fromSchemaVersion: "6.0.0",
     toSchemaVersion: SCHEMA_VERSION,
-    note: "Mechanic primitives are additive. No production content exists to migrate.",
+    note: "Match Rule & Pattern Engine is additive. No production content exists to migrate.",
   },
 ];

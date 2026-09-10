@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TOPOLOGY_KINDS } from "./topology.js";
-import { MATCH_MODES } from "../matching/types.js";
+import { MATCH_MODES, OVERLAP_POLICIES } from "../matching/types.js";
 
 export const positionSchema = z
   .object({
@@ -118,6 +118,18 @@ export const matchRulesSchema = z
   .object({
     minGroupSize: z.number().int().min(2),
     modes: z.array(z.enum(MATCH_MODES)).min(1),
+    overlapPolicy: z.enum(OVERLAP_POLICIES).optional(),
+    searchBounds: z
+      .object({
+        maxWalks: z.number().int().positive().optional(),
+        maxCycleLength: z.number().int().positive().optional(),
+        maxPathLength: z.number().int().positive().optional(),
+        maxVisitedPerWalk: z.number().int().positive().optional(),
+        maxFailuresRecorded: z.number().int().positive().optional(),
+      })
+      .strict()
+      .optional(),
+    ruleIds: z.array(z.string().min(1)).optional(),
   })
   .strict();
 

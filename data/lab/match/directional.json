@@ -1,0 +1,23 @@
+{
+  "id": "match.directional",
+  "status": "development",
+  "purpose": "engine-fixture",
+  "title": "Directional match",
+  "notes": "ENGINE TEST FIXTURE ONLY. Direction labels are authored on edges, never inferred from x/y.",
+  "topology": { "kind": "linear", "notes": "Authored eastward walk." },
+  "cells": [
+    { "id": "c0", "position": { "x": 4, "y": -2 }, "initialIcon": "dev.spark-a" },
+    { "id": "c1", "position": { "x": 0, "y": 9 }, "initialIcon": "dev.spark-a" },
+    { "id": "c2", "position": { "x": -3, "y": 1 }, "initialIcon": "dev.spark-a" },
+    { "id": "c3", "position": { "x": 8, "y": 8 }, "initialIcon": "dev.spark-b" }
+  ],
+  "connections": [
+    { "from": "c0", "to": "c1", "direction": "e" },
+    { "from": "c1", "to": "c2", "direction": "e" },
+    { "from": "c2", "to": "c3", "direction": "e" }
+  ],
+  "iconPool": ["dev.spark-a", "dev.spark-b"],
+  "matchRules": { "minGroupSize": 3, "modes": ["aligned"] },
+  "placement": { "mode": "authored" },
+  "movement": { "mode": "none", "refill": { "mode": "none" } }
+}

@@ -13,7 +13,7 @@ Visual positions are presentation/authoring information. Graph connectivity is g
 ## Architectural philosophy
 
 - **Data-driven.** Levels, Lands, icons, objectives, and obstacles are definitions. The engine interprets them.
-- **Graph-native.** Adjacency, direction, and flow are authored. Coordinates are for layout, never for match or gravity logic.
+- **Graph-native.** Adjacency, direction, and flow are authored. Coordinates are for layout, never for match or gravity logic. **Matching is graph-authoritative.**
 - **Modular.** New mechanics, obstacles, and match modes register without rewriting the board engine.
 - **Testable.** Cascade resolution, matching, and fairness run with no renderer.
 - **Deterministic when seeded.** Gameplay RNG is `SeededRandom`. `Math.random()` is not used for board logic.
@@ -25,7 +25,7 @@ Visual positions are presentation/authoring information. Graph connectivity is g
 ```
 src/
   board/          Graph cells, topology, directional edges, flow, rotation
-  matching/       Connectivity-based match detection
+  matching/       Graph-authoritative match rules, patterns, walks, overlap, events
   cascade/        Detect → resolve → effects → move → refill
   random/         Seeded, snapshotable RNG
   fairness/       Valid moves, dead boards, recovery
@@ -55,7 +55,9 @@ src/
   lab/            Playground + graph authoring session
 data/dev/         Development-only level fixture (not campaign content)
 data/lab/         Board Laboratory topology fixtures (not levels)
+data/lab/match/   Match-engine test fixtures (not levels, not in the visual catalog)
 LAND_DNA.md       Eight Land mechanical identities (not puzzles)
+MATCH_RULES.md    Match Rule & Pattern Engine (graph-authoritative)
 MECHANIC_PRIMITIVES.md  Reusable engine primitives (not Land mechanics)
 lab/              Developer Board Laboratory visualizer + authoring helper
 tests/            Engine tests (no UI)

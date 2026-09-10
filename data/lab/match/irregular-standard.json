@@ -1,0 +1,23 @@
+{
+  "id": "match.irregular-standard",
+  "status": "development",
+  "purpose": "engine-fixture",
+  "title": "Irregular standard match",
+  "notes": "ENGINE TEST FIXTURE ONLY. Not a level. Branching graph; matching must not assume a row or column.",
+  "topology": { "kind": "branching", "notes": "Hub with three authored spokes." },
+  "cells": [
+    { "id": "hub", "position": { "x": 0, "y": 0 }, "initialIcon": "dev.spark-a" },
+    { "id": "left", "position": { "x": -2, "y": 0 }, "initialIcon": "dev.spark-a" },
+    { "id": "right", "position": { "x": 2, "y": 0 }, "initialIcon": "dev.spark-a" },
+    { "id": "down", "position": { "x": 0, "y": 3 }, "initialIcon": "dev.spark-b" }
+  ],
+  "connections": [
+    { "from": "hub", "to": "left" },
+    { "from": "hub", "to": "right" },
+    { "from": "hub", "to": "down" }
+  ],
+  "iconPool": ["dev.spark-a", "dev.spark-b"],
+  "matchRules": { "minGroupSize": 3, "modes": ["cluster"] },
+  "placement": { "mode": "authored" },
+  "movement": { "mode": "none", "refill": { "mode": "none" } }
+}

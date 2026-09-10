@@ -1,0 +1,24 @@
+{
+  "id": "match.cycle-ring",
+  "status": "development",
+  "purpose": "engine-fixture",
+  "title": "Cycle / ring match",
+  "notes": "ENGINE TEST FIXTURE ONLY. Cycle is graph topology, not a visual circle. Coordinates are deliberately non-circular.",
+  "topology": { "kind": "circular", "notes": "Four-cell simple cycle." },
+  "cells": [
+    { "id": "a", "position": { "x": 0, "y": 0 }, "initialIcon": "dev.spark-a" },
+    { "id": "b", "position": { "x": 3, "y": 0.2 }, "initialIcon": "dev.spark-a" },
+    { "id": "c", "position": { "x": 2.4, "y": 2 }, "initialIcon": "dev.spark-a" },
+    { "id": "d", "position": { "x": -1, "y": 1.7 }, "initialIcon": "dev.spark-a" }
+  ],
+  "connections": [
+    { "from": "a", "to": "b", "direction": "e" },
+    { "from": "b", "to": "c", "direction": "s" },
+    { "from": "c", "to": "d", "direction": "w" },
+    { "from": "d", "to": "a", "direction": "n" }
+  ],
+  "iconPool": ["dev.spark-a"],
+  "matchRules": { "minGroupSize": 4, "modes": ["cycle"] },
+  "placement": { "mode": "authored" },
+  "movement": { "mode": "none", "refill": { "mode": "none" } }
+}
