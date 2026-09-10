@@ -45,6 +45,7 @@ src/
   economy/        Reward definitions
   progression/    Player unlock/completion state
   mechanics/      Land mechanic contracts (placeholders unimplemented)
+  primitives/     Reusable Land-neutral gameplay primitives
   levels/         Zod schema + validation
   state/          Authoritative session vs presentation state
   ui/             Accessibility + presentation contracts
@@ -55,6 +56,7 @@ src/
 data/dev/         Development-only level fixture (not campaign content)
 data/lab/         Board Laboratory topology fixtures (not levels)
 LAND_DNA.md       Eight Land mechanical identities (not puzzles)
+MECHANIC_PRIMITIVES.md  Reusable engine primitives (not Land mechanics)
 lab/              Developer Board Laboratory visualizer + authoring helper
 tests/            Engine tests (no UI)
 ```
@@ -118,6 +120,8 @@ These are **engine fixtures**, not levels. They have no Land, no level number, n
 Click two cells to see why they can or cannot interact (graph edges, not x±1/y±1). Toggle IDs, adjacency, portals, coordinates, matches, legal moves, flow, and direction labels.
 
 **Graph Authoring Helper** (mode: Graph authoring): add/move/rename/delete cells, author edges, flow, and portals, import/export JSON, and read validation errors. Optional “Connect nearby” writes real authored edges you can inspect. Snap is visual only. This helper is not the player-facing game.
+
+Play / inspect can trigger **mechanic primitive recipes** on the current fixture (disable edge, lock, swap, pair, region, path, threshold). That inspects reusable engine blocks. It is not a campaign editor and not a Land mechanic.
 
 ## How to author an irregular board
 

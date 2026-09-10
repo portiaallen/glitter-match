@@ -74,6 +74,25 @@
           <h3>Objective</h3>
           <pre id="objective"></pre>
         </section>
+        <section id="primitive-panel">
+          <h3>Mechanic primitives</h3>
+          <p class="hint">Development inspect only. These are reusable engine blocks, not Land mechanics or campaign content.</p>
+          <label class="field">Recipe
+            <select id="primitive-recipe" aria-label="Primitive recipe">
+              <option value="disable-selected-edge">Disable selected edge</option>
+              <option value="lock-selected-cell">Lock selected cell</option>
+              <option value="swap-selected">Swap selected occupants</option>
+              <option value="pair-selected">Pair selected cells</option>
+              <option value="region-from-selected">Region from selected cell</option>
+              <option value="path-between-selected">Path between selected cells</option>
+              <option value="tick-threshold">Advance demo threshold</option>
+            </select>
+          </label>
+          <div class="actions">
+            <button type="button" id="run-primitive">Trigger primitive</button>
+          </div>
+          <pre id="primitive-out" role="status"></pre>
+        </section>
         <div class="actions">
           <button type="button" id="resolve">Resolve matches</button>
           <button type="button" id="recover">Recover dead board</button>

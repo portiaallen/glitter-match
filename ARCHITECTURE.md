@@ -106,6 +106,8 @@ Preferred extension points:
 
 Avoid: `if (land === "lumina")` inside detect/cascade.
 
+Primitives (`src/primitives/`) are the reusable operations Land handlers will compose: state transitions, cell/occupant/edge overlays, topology mutation, pairing, regions, paths, thresholds, and transactional effect batches. See `MECHANIC_PRIMITIVES.md`. They are not Land mechanics.
+
 ## Board documents vs levels
 
 Levels still require a Land, objectives, and campaign metadata. The Board Laboratory uses `BoardDocument` instead:
@@ -197,6 +199,7 @@ Board Lab controls use large hit targets, high-contrast text, focus rings, keybo
 | Obstacle System | What blocks or modifies interaction |
 | Land DNA | Mechanical vocabulary of each Land |
 | Land Mechanic Registry | Handler contracts, effects, composition |
+| Mechanic Primitives | Reusable Land-neutral building blocks |
 | Level Definition | Data describing a puzzle |
 | Presentation | Animation, sound, camera |
 
