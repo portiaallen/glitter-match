@@ -29,3 +29,4 @@ export * from "./secrets/contract.js";
 export * from "./gates/contract.js";
 export * from "./universe/references.js";
 export * from "./primitives/index.js";
+export * from "./special-matches/index.js";

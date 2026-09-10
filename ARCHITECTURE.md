@@ -24,25 +24,28 @@ See `MATCH_RULES.md` for the Match Rule Registry, pattern framework, overlap pol
 
 **Glitter Icon:** universal wild that may join an ordinary/dev color group. Pure-glitter groups are ignored so we do not invent extra Glitter behavior in this phase. Levels cannot invent additional wildcards.
 
-**Special Matches** (pattern-created power tiles) are not implemented. Detected matches may emit **candidate metadata** only. Candidates stay distinct from **Special Icons** (inventory items).
+**Special Matches** (pattern-created board occupants) are implemented as a generic engine layer. The Match Engine still emits **candidate metadata only**. The Special Match Engine turns approved candidates into serializable board instances. Candidates stay distinct from **Special Icons** (inventory items). See `SPECIAL_MATCH_ENGINE.md`.
 
-Cascade still calls `detectMatches()` and then resolves/clears. The match pipeline (detect → group → overlap → special-candidate → mark → events) does not mutate the board and is not the cascade engine.
+The match pipeline (detect → group → overlap → special-candidate → mark → events) does not mutate the board. Cascade creates instances, activates registered triggers, and reuses the Prompt #6 effect system.
 
 ## Cascade pipeline vs presentation
 
 Logic pipeline, always in this order:
 
 1. Detect matches
-2. Resolve (clear occupants, score, collection stats)
-3. Obstacle effects
-4. Remaining-piece movement (`along-flow` or `none`)
-5. Refill
-6. Repeat until stable
-7. Complete
+2. Identify / conflict-resolve Special Match candidates
+3. Create Special Match instances (creation policy)
+4. Resolve (clear non-preserved occupants, score, collection stats)
+5. Obstacle effects
+6. Remaining-piece movement (`along-flow` or `none`)
+7. Activate triggered Special Matches and apply primitive effect batches
+8. Refill
+9. Repeat until stable or an explicit safety termination
+10. Complete
 
 `CascadeReport.steps` is the animation contract. The UI must not be required to advance game state.
 
-A combo cap (`maxCombos`, default 64) prevents infinite refill loops.
+Safety terminations are explicit: `CASCADE_COMPLETED`, `CASCADE_LIMIT_REACHED`, `CASCADE_STATE_REPEAT`, `CASCADE_INVALID`. Configurable limits are not a solvability proof.
 
 ## Randomness and fairness
 
@@ -176,7 +179,7 @@ A truncated or exhausted search is not a proof of unsolvability. `estimateSolvab
 
 ## Deterministic replay
 
-A `ReplayTape` stores seed, board definition, initial occupants, and events (player-move, match-detection, cascade, board-movement, rng-decision, rotation, objective). Replaying seed + moves recomputes logic. This is an engine/debug hook, not an online replay service.
+A `ReplayTape` stores seed, board definition, initial occupants, and events (player-move, match-detection, cascade, board-movement, rng-decision, rotation, objective, special-match). Replaying seed + moves recomputes logic, including Special Match creation and activation. This is an engine/debug hook, not an online replay service.
 
 ## Validation philosophy
 
@@ -196,7 +199,8 @@ Board Lab controls use large hit targets, high-contrast text, focus rings, keybo
 |---|---|
 | Board Graph | What exists and what connects |
 | Match Engine | What constitutes a match (graph-authoritative rules and patterns) |
-| Cascade Engine | What happens after a match |
+| Special Match Engine | Candidate → instance → activation → primitive effects |
+| Cascade Engine | What happens after a match, including specials |
 | Flow Engine | How pieces move through the graph |
 | Rotation Engine | How graph regions transform |
 | Objective System | What the player must accomplish |

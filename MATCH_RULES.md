@@ -19,7 +19,21 @@ Detect
   → Emit Match Events
 ```
 
-The board is **not** mutated in this pipeline. Cascade, refill, and obstacle effects remain separate. Special Match *candidates* are metadata only; they are not inventory Special Icons and are not created as board occupants here.
+The board is **not** mutated in this pipeline. Special Match *candidates* are metadata only; they are not inventory Special Icons and are not created as board occupants here.
+
+The Special Match Engine (see `SPECIAL_MATCH_ENGINE.md`) continues:
+
+```
+Resolve Candidate Conflicts
+  → Create Special Matches
+  → Mark Resolved Cells
+  → Emit Match Events
+  → Settle
+  → Activate Triggered Special Matches
+  → Resolve Effects
+  → Settle
+  → Detect Again
+```
 
 ## Registries and contracts
 

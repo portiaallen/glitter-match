@@ -19,6 +19,14 @@ export interface ObstacleHandler {
   blocksMovement?: (instance: { durability: number }, cellId: CellId) => boolean;
   onMatchesResolved: (instance: { type: string; durability: number; config: Record<string, unknown> }, ctx: ObstacleContext) => void;
   onCascade?: (instance: { type: string; durability: number; config: Record<string, unknown> }, ctx: ObstacleContext) => void;
+  /**
+   * Special Match effects ask the obstacle how to respond.
+   * Special Match code must not hardcode obstacle ids beyond this hook.
+   */
+  respondToSpecialEffect?: (
+    instance: { type: string; durability: number; config: Record<string, unknown> },
+    ctx: { board: Board; cellId: CellId; kind: string; effect?: { kind: string } },
+  ) => { action: "apply" | "block" | "weaken" | "unlock" | "reveal" | "redirect" | "ignore"; durabilityDelta?: number };
   serialize?: (instance: { type: string; durability: number; config: Record<string, unknown> }) => Record<string, unknown>;
 }
 
@@ -69,6 +77,9 @@ const lockHandler: ObstacleHandler = {
       instance.durability -= 1;
     }
   },
+  respondToSpecialEffect() {
+    return { action: "weaken" as const, durabilityDelta: -1 };
+  },
 };
 
 const iceHandler: ObstacleHandler = {
@@ -81,6 +92,9 @@ const iceHandler: ObstacleHandler = {
     if (selfMatch) {
       instance.durability -= 1;
     }
+  },
+  respondToSpecialEffect() {
+    return { action: "weaken" as const, durabilityDelta: -1 };
   },
 };
 

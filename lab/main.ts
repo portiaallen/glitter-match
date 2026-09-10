@@ -2,6 +2,9 @@ import { parseBoardDocument, type BoardDocument } from "../src/board/document.js
 import { inspectPrimitiveOnBoard, type LabPrimitiveRecipe } from "../src/lab/index.js";
 import { createPrimitiveRuntime, type PrimitiveRuntime } from "../src/primitives/index.js";
 import { startPlayground, type BoardPlayground } from "../src/lab/playground.js";
+import { replayTape, occupantSnapshot } from "../src/replay/index.js";
+import lineCreate from "../data/lab/special/line-create.json";
+import adjacentTrigger from "../data/lab/special/adjacent-trigger.json";
 import { GraphAuthoringSession } from "../src/lab/authoring.js";
 import { createDevelopmentPack } from "../src/content/packs.js";
 import diamond from "../data/lab/diamond.json";
@@ -17,6 +20,7 @@ import seeded from "../data/lab/seeded-fill.json";
 const FIXTURES = [diamond, heart, ring, spiral, twin, islands, cascade, dead, seeded].map((raw) =>
   parseBoardDocument(raw),
 );
+const SPECIAL_FIXTURES = [lineCreate, adjacentTrigger].map((raw) => parseBoardDocument(raw));
 const pack = createDevelopmentPack();
 const SCALE = 56;
 const RADIUS = 22;
@@ -26,6 +30,9 @@ const ICON_MARK: Record<string, { letter: string; pattern: string; fill: string 
   "dev.spark-b": { letter: "B", pattern: "○", fill: "#ff7ab6" },
   "dev.spark-c": { letter: "C", pattern: "◇", fill: "#b6ff6a" },
   glitter: { letter: "G", pattern: "✦", fill: "#ffe27a" },
+  "special-match:line-clear": { letter: "L", pattern: "━", fill: "#9ad7ff" },
+  "special-match:area-clear": { letter: "A", pattern: "▣", fill: "#d7b6ff" },
+  "special-match:cross-clear": { letter: "X", pattern: "✚", fill: "#ffd27a" },
 };
 
 const layers = {
@@ -60,6 +67,8 @@ const edgeTraversal = document.querySelector("#edge-traversal") as HTMLSelectEle
 const cellIdInput = document.querySelector("#cell-id") as HTMLInputElement;
 const primitiveRecipe = document.querySelector("#primitive-recipe") as HTMLSelectElement;
 const primitiveOut = document.querySelector("#primitive-out") as HTMLElement;
+const specialOut = document.querySelector("#special-out") as HTMLElement;
+const specialFixtureList = document.querySelector("#special-fixture-list") as HTMLUListElement;
 
 let current = FIXTURES[0]!;
 let playground = load(current);
@@ -246,8 +255,18 @@ function render(): void {
     const iconId = isAuthor()
       ? author.cells().find((cell) => cell.id === id)?.initialIcon
       : inspection?.icons[id];
-    const mark = iconId ? ICON_MARK[iconId] ?? { letter: "?", pattern: "□", fill: "#888" } : { letter: "·", pattern: "", fill: "#2a3144" };
-    const group = add("g", { class: "cell-hit", tabindex: "0", role: "button", "aria-label": `Cell ${id}` });
+    const specialType = iconId?.startsWith("special-match:") ? iconId.split(":")[1] : undefined;
+    const mark = specialType
+      ? ICON_MARK[`special-match:${specialType}`] ?? { letter: "S", pattern: "SM", fill: "#9ad7ff" }
+      : iconId
+        ? ICON_MARK[iconId] ?? { letter: "?", pattern: "□", fill: "#888" }
+        : { letter: "·", pattern: "", fill: "#2a3144" };
+    const group = add("g", {
+      class: "cell-hit",
+      tabindex: "0",
+      role: "button",
+      "aria-label": specialType ? `${specialType} Special Match at cell ${id}` : `Cell ${id}`,
+    });
     if (!isAuthor() && layers.matches.checked && matched.has(id)) {
       add("circle", {
         cx: String(pos.x),
@@ -349,7 +368,19 @@ function render(): void {
     movesEl.textContent = inspection.validMoves.length
       ? inspection.validMoves.map((move) => `${move.a} ↔ ${move.b}`).join("\n")
       : "(none)";
-    cascadeEl.textContent = `count: ${inspection.cascadeCount}\ndead: ${inspection.deadBoard}\nseed: ${inspection.seed}`;
+    const special = playground.inspectSpecialMatches();
+    const last = playground.lastCascade;
+    cascadeEl.textContent = [
+      `count: ${inspection.cascadeCount}`,
+      `dead: ${inspection.deadBoard}`,
+      `seed: ${inspection.seed}`,
+      last ? `termination: ${last.termination}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+    if (specialOut) {
+      specialOut.textContent = formatSpecialInspect();
+    }
     objectiveEl.textContent = inspection.objective ? JSON.stringify(inspection.objective, null, 2) : "(no demo objective on this fixture)";
     notesEl.textContent = current.notes ?? "";
     statusEl.textContent = `${current.title} · ${inspection.cellIds.length} cells · topology ${inspection.topologyKind} · graph, not a grid`;
@@ -467,9 +498,33 @@ function setMode(next: "play" | "author"): void {
   }
 }
 
-function mountList(): void {
-  fixtureList.replaceChildren();
-  for (const fixture of FIXTURES) {
+function formatSpecialInspect(): string {
+  if (isAuthor()) {
+    return "Switch to Play / inspect to inspect Special Matches.";
+  }
+  const special = playground.inspectSpecialMatches();
+  const last = playground.lastCascade;
+  const instances = Object.values(special.instances);
+  return [
+    "WHY / WHAT",
+    `candidates: ${special.candidates.map((item) => `${item.candidateType}@${item.anchorCellId} p${item.priority}`).join(" | ") || "(none)"}`,
+    `policy: priority-unique-anchors (cross > T > L > line-5/4 > cluster-4+)`,
+    `instances: ${instances.map((item) => `${item.typeId} ${item.state} @${item.anchorCellId}`).join(" | ") || "(none)"}`,
+    `pending: ${special.pending.map((item) => `${item.trigger}:${item.instanceId}`).join(" | ") || "(none)"}`,
+    last
+      ? `cascade: ${last.termination} combo=${last.combo} created=${last.specialMatchesCreated.length} effects=${last.diagnostics.effectCount} depth=${last.diagnostics.cascadeDepth}`
+      : "cascade: (not run)",
+    last ? `steps: ${last.steps.map((step) => step.phase).join(" → ")}` : "",
+    special.cascadeExplanation,
+    special.explanations.join("\n"),
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+function mountFixtureButtons(host: HTMLUListElement, fixtures: typeof FIXTURES): void {
+  host.replaceChildren();
+  for (const fixture of fixtures) {
     const item = document.createElement("li");
     const button = document.createElement("button");
     button.type = "button";
@@ -490,7 +545,14 @@ function mountList(): void {
       mountList();
     });
     item.append(button);
-    fixtureList.append(item);
+    host.append(item);
+  }
+}
+
+function mountList(): void {
+  mountFixtureButtons(fixtureList, FIXTURES);
+  if (specialFixtureList) {
+    mountFixtureButtons(specialFixtureList, SPECIAL_FIXTURES);
   }
 }
 
@@ -528,6 +590,67 @@ document.querySelector("#recover")?.addEventListener("click", () => {
   const result = playground.recoverIfDead();
   statusEl.textContent = result.recovered ? `Recovered in ${result.attempts} shuffle(s).` : "Recovery failed.";
   render();
+});
+document.querySelector("#special-inspect")?.addEventListener("click", () => {
+  if (specialOut) {
+    specialOut.textContent = formatSpecialInspect();
+  }
+  statusEl.textContent = "Special Match inspection refreshed.";
+});
+document.querySelector("#special-activate")?.addEventListener("click", () => {
+  if (isAuthor()) {
+    if (specialOut) {
+      specialOut.textContent = "Switch to Play / inspect to activate Special Matches.";
+    }
+    return;
+  }
+  const inspection = playground.inspectSpecialMatches();
+  const selectedSpecial = selected
+    .map((id) => {
+      const occupant = playground.board.cells[id]?.occupant;
+      return occupant?.type === "special-match" ? occupant.instanceId : undefined;
+    })
+    .find(Boolean);
+  const armed = selectedSpecial ?? Object.values(inspection.instances).find((item) => item.state === "armed")?.instanceId;
+  if (!armed) {
+    if (specialOut) {
+      specialOut.textContent = "No armed Special Match to activate.";
+    }
+    return;
+  }
+  playground.queueSpecialActivation(armed);
+  const report = playground.resolveNow();
+  statusEl.textContent = `Activated ${armed}. ${report.termination}.`;
+  render();
+});
+document.querySelector("#special-serialize")?.addEventListener("click", () => {
+  if (isAuthor()) {
+    return;
+  }
+  const inspection = playground.inspectSpecialMatches();
+  if (specialOut) {
+    specialOut.textContent = inspection.serialized;
+  }
+  statusEl.textContent = "Serialized Special Match state.";
+});
+document.querySelector("#special-replay")?.addEventListener("click", () => {
+  if (isAuthor()) {
+    return;
+  }
+  const replayed = replayTape(playground.tape, {
+    registries: playground.registries,
+    matchRules: playground.matchRules,
+    iconPool: playground.iconPool,
+  });
+  const same = JSON.stringify(occupantSnapshot(replayed.board)) === JSON.stringify(occupantSnapshot(playground.board));
+  if (specialOut) {
+    specialOut.textContent = [
+      `replay termination: ${replayed.cascade?.termination ?? "none"}`,
+      `created: ${(replayed.cascade?.specialMatchesCreated ?? []).join(", ") || "(none)"}`,
+      `occupants match live board: ${same}`,
+    ].join("\n");
+  }
+  statusEl.textContent = same ? "Replay matched live Special Match state." : "Replay occupants differ.";
 });
 document.querySelector("#run-primitive")?.addEventListener("click", () => {
   if (isAuthor()) {

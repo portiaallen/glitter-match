@@ -1,0 +1,23 @@
+{
+  "id": "special.line-create",
+  "status": "development",
+  "purpose": "engine-fixture",
+  "title": "Special Match line creation",
+  "notes": "ENGINE TEST FIXTURE ONLY. Not a level. Four-cell authored line to prove candidate → instance creation.",
+  "topology": { "kind": "linear", "notes": "Authored eastward line." },
+  "cells": [
+    { "id": "c0", "position": { "x": 0, "y": 0 }, "initialIcon": "dev.spark-a" },
+    { "id": "c1", "position": { "x": 1, "y": 0 }, "initialIcon": "dev.spark-a" },
+    { "id": "c2", "position": { "x": 2, "y": 0 }, "initialIcon": "dev.spark-a" },
+    { "id": "c3", "position": { "x": 3, "y": 0 }, "initialIcon": "dev.spark-a" }
+  ],
+  "connections": [
+    { "from": "c0", "to": "c1", "direction": "e" },
+    { "from": "c1", "to": "c2", "direction": "e" },
+    { "from": "c2", "to": "c3", "direction": "e" }
+  ],
+  "iconPool": ["dev.spark-a", "dev.spark-b"],
+  "matchRules": { "minGroupSize": 3, "modes": ["aligned"] },
+  "placement": { "mode": "authored" },
+  "movement": { "mode": "none", "refill": { "mode": "none" } }
+}

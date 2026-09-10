@@ -1,4 +1,4 @@
-import { getCell, type Board } from "../board/index.js";
+import { encodeOccupant, getCell, type Board } from "../board/index.js";
 import { detectMatches, type MatchRules } from "../matching/index.js";
 import { isDeadBoard, listValidMoves } from "../fairness/index.js";
 import type { LevelDefinition } from "../levels/index.js";
@@ -39,7 +39,7 @@ export function inspectPlayableBoard(
 
   for (const id of board.topology.cellIds) {
     const cell = getCell(board, id);
-    iconsState[id] = cell.occupant.type === "icon" ? cell.occupant.iconId : null;
+    iconsState[id] = encodeOccupant(cell.occupant);
     flags[id] = { ...cell.flags };
     obstacleState[id] = cell.obstacles.map((item) => ({ ...item }));
     positions[id] = { ...board.topology.cells[id]!.position };

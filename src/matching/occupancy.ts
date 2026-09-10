@@ -18,7 +18,7 @@ export const ALLOWED_CELL_STATES = [
 ] as const;
 export type AllowedCellState = (typeof ALLOWED_CELL_STATES)[number];
 
-export const ALLOWED_OCCUPANT_STATES = ["icon", "empty"] as const;
+export const ALLOWED_OCCUPANT_STATES = ["icon", "empty", "special-match"] as const;
 export type AllowedOccupantState = (typeof ALLOWED_OCCUPANT_STATES)[number];
 
 export const DEFAULT_ALLOWED_CELL_STATES: readonly AllowedCellState[] = ["active", "visible", "not-void"];
@@ -75,6 +75,9 @@ export function canParticipate(
     return true;
   }
   if (allowedOccupantStates.includes("empty") && cell.occupant.type === "empty") {
+    return true;
+  }
+  if (allowedOccupantStates.includes("special-match") && cell.occupant.type === "special-match") {
     return true;
   }
   return false;

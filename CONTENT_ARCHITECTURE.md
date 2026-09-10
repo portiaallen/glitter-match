@@ -93,6 +93,7 @@ Canonical families (8 icons each) are registered as identity data, not as campai
 
 - **Glitter Icon** (`glitter`): landless. Matches ordinary icons using the existing universal-match contract. No extra behavior.
 - **Special Icons** (inventory, not board matches): Glitter Bomb, Glitter Hammer, Prism, Wild Card, Magic Swap, Glitter Lightning. These are not Special Matches created from patterns.
+- **Board Special Matches** are a separate engine layer (`SPECIAL_MATCH_ENGINE.md`). Generic test categories exist (`line-clear`, `area-clear`, `cross-clear`). They are not inventory items and are not production content.
 
 ## Mechanic registry
 
@@ -114,7 +115,7 @@ Obstacles expose blocking, match/movement/cascade hooks, serialization, and an a
 
 Movement is graph traversal. A level may author swap rules, constraints, directional/rotation flags, limits, and timing. Never `y + 1 = gravity` and never x/y neighbor inference.
 
-Match contracts (`standard-3+`, horizontal/vertical/diagonal, L, T, cross, cluster, pattern, directional, path, cycle, ring, land-registered) map onto engine modes. Executable rules live in the Match Engine Rule Registry. **Matching is graph-authoritative.** Land-specific match rules must register; they are not hardcoded. See `MATCH_RULES.md`.
+Match contracts (`standard-3+`, horizontal/vertical/diagonal, L, T, cross, cluster, pattern, directional, path, cycle, ring, land-registered) map onto engine modes. Executable rules live in the Match Engine Rule Registry. **Matching is graph-authoritative.** Land-specific match rules must register; they are not hardcoded. See `MATCH_RULES.md`. Approved special-pattern candidates may become board Special Matches through `SPECIAL_MATCH_ENGINE.md`. That creation step is cascade/engine work, not Level DNA and not inventory.
 
 ## Twists, mastery, rewards
 

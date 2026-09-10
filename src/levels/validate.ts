@@ -114,7 +114,7 @@ export function toBoardDefinition(level: LevelDefinition): BoardDefinition {
 }
 
 export function isLaboratoryFixtureId(id: string): boolean {
-  return id.startsWith("lab.") || id.startsWith("lab/");
+  return id.startsWith("lab.") || id.startsWith("lab/") || id.startsWith("special.");
 }
 
 function validateDevFixturePolicy(
