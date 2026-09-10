@@ -1,7 +1,7 @@
 /** Schema/content versions for independently versionable packs. */
 
-export const SCHEMA_VERSION = "7.0.0" as const;
-export const CONTENT_VERSION = "0.4.0-match-rules" as const;
+export const SCHEMA_VERSION = "8.0.0" as const;
+export const CONTENT_VERSION = "0.5.0-special-matches" as const;
 
 export interface VersionRecord {
   schemaVersion: string;
@@ -44,8 +44,8 @@ export interface MigrationHook {
 
 export const MIGRATION_HOOKS: readonly MigrationHook[] = [
   {
-    fromSchemaVersion: "6.0.0",
+    fromSchemaVersion: "7.0.0",
     toSchemaVersion: SCHEMA_VERSION,
-    note: "Match Rule & Pattern Engine is additive. No production content exists to migrate.",
+    note: "Special Match Engine is additive. No production content exists to migrate.",
   },
 ];

@@ -2,6 +2,7 @@ import { boardDefinitionSchema } from "./schema.js";
 import type { BoardDefinition, Occupant } from "./types.js";
 import type { Board } from "./types.js";
 import { getCell } from "./graph.js";
+import { decodeOccupant, encodeOccupant } from "./occupants.js";
 
 export interface SerializedBoardState {
   definition: BoardDefinition;
@@ -71,7 +72,7 @@ export function serializeBoardState(definition: BoardDefinition, board: Board): 
   const occupants: Record<string, string | null> = {};
   for (const id of board.topology.cellIds) {
     const occupant = getCell(board, id).occupant;
-    occupants[id] = occupant.type === "icon" ? occupant.iconId : null;
+    occupants[id] = encodeOccupant(occupant);
   }
   return {
     definition: canonicalizeBoardDefinition(definition),
@@ -83,7 +84,7 @@ export function serializeBoardState(definition: BoardDefinition, board: Board): 
 export function occupantsFromSerialized(state: SerializedBoardState): Record<string, Occupant> {
   const occupants: Record<string, Occupant> = {};
   for (const [id, iconId] of Object.entries(state.occupants)) {
-    occupants[id] = iconId ? { type: "icon", iconId } : { type: "empty" };
+    occupants[id] = decodeOccupant(iconId);
   }
   return occupants;
 }

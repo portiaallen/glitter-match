@@ -8,6 +8,7 @@ import type { PlayerProgression } from "../progression/index.js";
 import type { RandomSnapshot } from "../random/index.js";
 import type { MechanicState } from "../mechanics/index.js";
 import type { SpecialIconInventory } from "../special-icons/index.js";
+import type { SpecialMatchRuntime } from "../special-matches/index.js";
 import type { AccessibilitySettings } from "../ui/accessibility.js";
 
 export type SessionStatus = "playing" | "won" | "lost" | "dead-unrecovered";
@@ -22,6 +23,8 @@ export interface AuthoritativeGameState {
   combo: number;
   lastCascade: CascadeReport | null;
   specialInventory: SpecialIconInventory;
+  /** Board Special Matches. Distinct from inventory Special Icons. */
+  specialMatches: SpecialMatchRuntime;
   earnedRewards: EarnedReward[];
   status: SessionStatus;
   rng: RandomSnapshot;

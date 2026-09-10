@@ -25,6 +25,13 @@ import {
   type ReplayTape,
 } from "../replay/index.js";
 import { searchSolvability, type SolvabilitySearchReport } from "../solvability/index.js";
+import {
+  createSpecialMatchRuntime,
+  inspectSpecialMatches,
+  labActivateSpecial,
+  type SpecialMatchInspection,
+  type SpecialMatchRuntime,
+} from "../special-matches/index.js";
 
 export interface PlaygroundOptions {
   document: BoardDocument;
@@ -54,6 +61,7 @@ export class BoardPlayground {
   lastCascade: CascadeReport | null = null;
   cascadeCount = 0;
   tape: ReplayTape;
+  specialRuntime: SpecialMatchRuntime;
   private random: RandomSource;
   private readonly objective: Objective | null;
 
@@ -70,6 +78,7 @@ export class BoardPlayground {
       ? createObjective(options.document.demoObjective as ObjectiveDefinition)
       : null;
     this.board = this.placeBoard();
+    this.specialRuntime = createSpecialMatchRuntime();
     this.tape = createEmptyTape(this.seed, this.definition, this.board);
     if (options.resolveInitialMatches) {
       this.resolveMatches();
@@ -100,6 +109,14 @@ export class BoardPlayground {
     return runMatchResolution(this.board, this.matchRules, this.registries.icons);
   }
 
+  inspectSpecialMatches(): SpecialMatchInspection {
+    return inspectSpecialMatches(this.board, this.matchRules, this.registries.icons, this.specialRuntime);
+  }
+
+  queueSpecialActivation(instanceId: string): void {
+    labActivateSpecial(this.specialRuntime, instanceId);
+  }
+
   isDead(): boolean {
     return isDeadBoard(this.board, this.matchRules, this.registries.icons, this.registries.obstacles);
   }
@@ -119,6 +136,7 @@ export class BoardPlayground {
     }
     this.tape = appendReplayEvent(this.tape, { kind: "player-move", a, b });
     this.tape = appendReplayEvent(this.tape, { kind: "rng-decision", purpose: "pre-cascade", snapshot: this.random.snapshot() });
+    this.specialRuntime.moveIndex += 1;
     const cascade = this.resolveMatches();
     return { ok: true, cascade };
   }
@@ -224,6 +242,7 @@ export class BoardPlayground {
       random: this.random,
       stats: this.stats,
       scoreForMatch: (group, combo) => group.cellIds.length * 10 * combo,
+      specialRuntime: this.specialRuntime,
     });
     this.lastCascade = report;
     this.cascadeCount = report.combo;
@@ -235,6 +254,12 @@ export class BoardPlayground {
       cellIds: [...new Set(cleared)].sort(),
     });
     this.tape = appendReplayEvent(this.tape, { kind: "cascade", combo: report.combo, clearedCellIds: cleared });
+    this.tape = appendReplayEvent(this.tape, {
+      kind: "special-match",
+      instanceIds: report.specialMatchesCreated,
+      created: report.specialMatchesCreated,
+      termination: report.termination,
+    });
     const moved = report.steps.flatMap((step) => step.moved);
     if (moved.length > 0) {
       this.tape = appendReplayEvent(this.tape, { kind: "board-movement", moves: moved });
