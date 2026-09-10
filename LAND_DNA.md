@@ -144,3 +144,5 @@ Each Land may later designate Level 80 as a signature finale. Those references a
 ## Boundary
 
 Land DNA is the mechanical identity layer. It is not production art, story, Gates, Sanctuary, Museum, Personal Story, adaptive difficulty, a CMS, or any production level.
+
+Future Land handlers compose **mechanic primitives** (state, topology, pairing, paths, …). Those primitives stay Land-neutral. See `MECHANIC_PRIMITIVES.md`.

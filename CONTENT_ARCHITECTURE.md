@@ -102,6 +102,8 @@ The engine asks the registry, runs declared hooks, and collects explicit effects
 
 All eight Land handlers (`land.lumina` … `land.infinity-isles`) are reserved and unimplemented. `dev.echo` exists only for the mechanic test harness.
 
+Reusable gameplay primitives live in `src/primitives/` and are documented in `MECHANIC_PRIMITIVES.md`. Primitives are building blocks, not Land content and not campaign levels.
+
 ## Objectives and obstacles
 
 Objective types: collection, clearing, path, score, combo, precision, survival, pattern, discovery, multi-stage, hybrid.

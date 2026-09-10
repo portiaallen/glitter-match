@@ -1,4 +1,6 @@
 import { parseBoardDocument, type BoardDocument } from "../src/board/document.js";
+import { inspectPrimitiveOnBoard, type LabPrimitiveRecipe } from "../src/lab/index.js";
+import { createPrimitiveRuntime, type PrimitiveRuntime } from "../src/primitives/index.js";
 import { startPlayground, type BoardPlayground } from "../src/lab/playground.js";
 import { GraphAuthoringSession } from "../src/lab/authoring.js";
 import { createDevelopmentPack } from "../src/content/packs.js";
@@ -56,6 +58,8 @@ const snapInput = document.querySelector("#snap") as HTMLInputElement;
 const edgeDirection = document.querySelector("#edge-direction") as HTMLInputElement;
 const edgeTraversal = document.querySelector("#edge-traversal") as HTMLSelectElement;
 const cellIdInput = document.querySelector("#cell-id") as HTMLInputElement;
+const primitiveRecipe = document.querySelector("#primitive-recipe") as HTMLSelectElement;
+const primitiveOut = document.querySelector("#primitive-out") as HTMLElement;
 
 let current = FIXTURES[0]!;
 let playground = load(current);
@@ -63,8 +67,15 @@ let author = GraphAuthoringSession.fromDocument(current);
 let selected: string[] = [];
 let mode: "play" | "author" = "play";
 let drag: { id: string } | null = null;
+let primitiveRuntime: PrimitiveRuntime | null = null;
+let primitiveSelection: string[] = [];
 
 function load(document: BoardDocument): BoardPlayground {
+  primitiveRuntime = null;
+  primitiveSelection = [];
+  if (primitiveOut) {
+    primitiveOut.textContent = "No primitive triggered. Engine fixtures only.";
+  }
   return startPlayground({ document, registries: pack, seed: seedInput.value || "lab-seed" });
 }
 
@@ -386,6 +397,7 @@ function onCell(id: string): void {
     return;
   }
   selected = selected.length === 1 ? [selected[0]!, id] : [id];
+  primitiveSelection = [...selected];
   if (selected.length === 2) {
     const [a, b] = selected;
     const explanation = playground.explain(a!, b!);
@@ -515,6 +527,30 @@ document.querySelector("#resolve")?.addEventListener("click", () => {
 document.querySelector("#recover")?.addEventListener("click", () => {
   const result = playground.recoverIfDead();
   statusEl.textContent = result.recovered ? `Recovered in ${result.attempts} shuffle(s).` : "Recovery failed.";
+  render();
+});
+document.querySelector("#run-primitive")?.addEventListener("click", () => {
+  if (isAuthor()) {
+    primitiveOut.textContent = "Switch to Play / inspect to trigger primitives on a fixture.";
+    return;
+  }
+  primitiveRuntime ??= createPrimitiveRuntime(playground.board);
+  const recipe = primitiveRecipe.value as LabPrimitiveRecipe;
+  const inspection = inspectPrimitiveOnBoard(playground.board, recipe, primitiveSelection, primitiveRuntime);
+  playground.board = primitiveRuntime.board;
+  primitiveOut.textContent = [
+    inspection.ok ? "OK" : "FAILED",
+    inspection.explanation.what,
+    inspection.explanation.why,
+    inspection.explanation.failure ? `Failure: ${inspection.explanation.failure}` : "",
+    inspection.region ? `Region: ${inspection.region.join(", ")}` : "",
+    inspection.path ? `Path: ${inspection.path.join(" → ")}` : "",
+    `Cells: ${inspection.explanation.changedCells.join(", ") || "none"}`,
+    `Edges: ${inspection.explanation.changedEdges.join(", ") || "none"}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+  statusEl.textContent = `Primitive ${recipe} ${inspection.ok ? "applied" : "rejected"}.`;
   render();
 });
 document.querySelector("#export-board")?.addEventListener("click", () => {
