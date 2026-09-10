@@ -71,6 +71,7 @@ export class GameSession {
       status: "playing",
       rng: this.random.snapshot(),
       seed: options.seed,
+      mechanicStates: {},
     };
 
     const initial = this.resolveBoard();

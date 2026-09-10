@@ -122,7 +122,19 @@ export const levelDefinitionSchema = z
     objective: objectiveSchema,
     objectives: z.array(objectiveSchema).optional(),
     obstacles: z.array(obstaclePlacementSchema).optional(),
-    mechanics: z.array(z.string()).optional(),
+    mechanics: z
+      .array(
+        z.union([
+          z.string().min(1),
+          z
+            .object({
+              id: z.string().min(1),
+              priority: z.number().int().optional(),
+            })
+            .strict(),
+        ]),
+      )
+      .optional(),
     difficulty: difficultySchema.optional(),
     pacing: pacingRoleSchema.optional(),
     ruleOfThree: ruleOfThreeSchema.optional(),

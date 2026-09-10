@@ -1,7 +1,7 @@
 /** Schema/content versions for independently versionable packs. */
 
-export const SCHEMA_VERSION = "4.0.0" as const;
-export const CONTENT_VERSION = "0.1.0-architecture" as const;
+export const SCHEMA_VERSION = "5.0.0" as const;
+export const CONTENT_VERSION = "0.2.0-land-dna" as const;
 
 export interface VersionRecord {
   schemaVersion: string;
@@ -44,8 +44,8 @@ export interface MigrationHook {
 
 export const MIGRATION_HOOKS: readonly MigrationHook[] = [
   {
-    fromSchemaVersion: "1.0.0",
+    fromSchemaVersion: "4.0.0",
     toSchemaVersion: SCHEMA_VERSION,
-    note: "Foundation schemas are additive. No production content exists to migrate.",
+    note: "Land DNA and mechanic contracts are additive. No production content exists to migrate.",
   },
 ];
