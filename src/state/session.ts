@@ -11,7 +11,17 @@ import {
 import type { IconRegistry } from "../icons/index.js";
 import { toBoardDefinition, type LevelDefinition } from "../levels/index.js";
 import type { MechanicRegistry } from "../mechanics/index.js";
-import { createObjective, createEmptyStats, type Objective, type ObjectiveProgress } from "../objectives/index.js";
+import {
+  createObjective,
+  createEmptyStats,
+  createObjectiveRuntime,
+  evaluateRuntime,
+  ingestCascade,
+  type Objective,
+  type ObjectiveProgress,
+  type ObjectiveDefinition,
+  type WinStateResult,
+} from "../objectives/index.js";
 import type { ObstacleRegistry } from "../obstacles/index.js";
 import { createNewProgression, type PlayerProgression } from "../progression/index.js";
 import { createRandomSource, restoreRandomSource, type RandomSource } from "../random/index.js";
@@ -69,6 +79,7 @@ export class GameSession {
       lastCascade: null,
       specialInventory: options.specialInventory ?? createEmptySpecialInventory(),
       specialMatches: createSpecialMatchRuntime(),
+      objectiveRuntime: createObjectiveRuntime(this.levelObjectives(), options.level.winState, options.level.moveLimit !== null),
       earnedRewards: [],
       status: "playing",
       rng: this.random.snapshot(),
@@ -79,12 +90,17 @@ export class GameSession {
     const initial = this.resolveBoard();
     this.state.lastCascade = initial;
     this.presentation.pendingCascade = initial;
+    ingestCascade(this.state.objectiveRuntime, initial, this.objectiveContext());
     this.ensureFairBoard();
     this.refreshStatus();
   }
 
   inspectObjective(): ObjectiveProgress {
     return this.objective.evaluate(this.objectiveContext());
+  }
+
+  inspectWinState(): WinStateResult {
+    return evaluateRuntime(this.state.objectiveRuntime, this.objectiveContext());
   }
 
   swap(a: string, b: string): CascadeReport {
@@ -110,6 +126,7 @@ export class GameSession {
     }
     this.state.specialMatches.moveIndex += 1;
     const cascade = this.resolveBoard();
+    ingestCascade(this.state.objectiveRuntime, cascade, this.objectiveContext());
 
     if (this.state.movesRemaining !== null) {
       this.state.movesRemaining -= 1;
@@ -196,8 +213,8 @@ export class GameSession {
   }
 
   private refreshStatus(): void {
-    const objective = this.inspectObjective();
-    if (objective.complete) {
+    const win = evaluateRuntime(this.state.objectiveRuntime, this.objectiveContext());
+    if (win.state === "COMPLETED") {
       this.state.status = "won";
       this.grantRewards();
       return;
@@ -205,9 +222,18 @@ export class GameSession {
     if (this.state.status === "dead-unrecovered") {
       return;
     }
-    if (this.state.movesRemaining === 0) {
+    if (win.state === "FAILED") {
       this.state.status = "lost";
     }
+  }
+
+  private levelObjectives(): ObjectiveDefinition[] {
+    const extras = (this.level.objectives ?? []).map((item) => item as ObjectiveDefinition);
+    const optional = (this.level.mastery?.optionalObjectives ?? []).map((item) => ({
+      ...(item as ObjectiveDefinition),
+      role: (item as ObjectiveDefinition).role ?? ("optional" as const),
+    }));
+    return [this.level.objective as ObjectiveDefinition, ...extras, ...optional];
   }
 
   private grantRewards(): void {
@@ -242,8 +268,11 @@ export class GameSession {
     return {
       stats: this.state.stats,
       movesRemaining: this.state.movesRemaining,
+      moveLimit: this.level.moveLimit,
       occupiedIcons,
       hiddenCellIds,
+      board: this.state.board,
+      events: this.state.objectiveRuntime.events,
     };
   }
 }

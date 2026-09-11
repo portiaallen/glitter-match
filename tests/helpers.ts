@@ -4,6 +4,7 @@ import { createDevelopmentPack } from "../src/content/index.js";
 import { LAB_FIXTURE_FILES, type LabFixtureId } from "../src/lab/catalog.js";
 import { defaultMatchRules, MATCH_ENGINE_FIXTURE_FILES, type MatchEngineFixtureId, type MatchRules } from "../src/matching/index.js";
 import { SPECIAL_MATCH_FIXTURE_FILES, type SpecialMatchFixtureId } from "../src/special-matches/index.js";
+import { OBJECTIVE_FIXTURE_FILES, type ObjectiveFixtureId } from "../src/objectives/index.js";
 
 export function pack() {
   return createDevelopmentPack();
@@ -15,6 +16,10 @@ export function loadLabDocument(id: LabFixtureId): BoardDocument {
 
 export function loadMatchFixture(id: MatchEngineFixtureId): BoardDocument {
   return parseBoardDocument(JSON.parse(readFileSync(MATCH_ENGINE_FIXTURE_FILES[id], "utf8")));
+}
+
+export function loadObjectiveFixture(id: ObjectiveFixtureId): BoardDocument {
+  return parseBoardDocument(JSON.parse(readFileSync(OBJECTIVE_FIXTURE_FILES[id], "utf8")));
 }
 
 export function loadSpecialFixture(id: SpecialMatchFixtureId): BoardDocument {

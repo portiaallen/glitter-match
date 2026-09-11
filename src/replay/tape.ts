@@ -5,7 +5,15 @@ import { runCascade, type CascadeReport } from "../cascade/index.js";
 import { canAttemptSwap, swapOccupants } from "../fairness/index.js";
 import type { MatchRules } from "../matching/index.js";
 import { detectMatches } from "../matching/index.js";
-import { createEmptyStats, type GameStats } from "../objectives/index.js";
+import {
+  createEmptyStats,
+  createObjectiveEvent,
+  createObjectiveRuntime,
+  evaluateRuntime,
+  ingestCascade,
+  type GameStats,
+  type ObjectiveDefinition,
+} from "../objectives/index.js";
 import type { EngineRegistries } from "../state/session.js";
 import { createRandomSource, type RandomSnapshot, type RandomSource } from "../random/index.js";
 import { rotateSection } from "../board/rotation.js";
@@ -18,7 +26,7 @@ export type ReplayEvent =
   | { kind: "board-movement"; moves: Array<{ from: string; to: string; iconId: string }> }
   | { kind: "rng-decision"; purpose: string; snapshot: RandomSnapshot }
   | { kind: "rotation"; sectionId: string; steps: number; visualAngle: number }
-  | { kind: "objective"; complete: boolean; label?: string }
+  | { kind: "objective"; complete: boolean; label?: string; status?: string; winState?: string; current?: number; target?: number }
   | { kind: "special-match"; instanceIds: string[]; created: string[]; termination: string };
 
 export interface ReplayTape {
@@ -82,6 +90,7 @@ export function replayTape(
     matchRules: MatchRules;
     iconPool: string[];
     random?: RandomSource;
+    objective?: ObjectiveDefinition;
   },
 ): ReplayResult {
   const random = options.random ?? createRandomSource(tape.seed);
@@ -91,6 +100,8 @@ export function replayTape(
   }));
   const stats = createEmptyStats();
   const specialRuntime = createSpecialMatchRuntime();
+  const replayObjective = options.objective;
+  const objectiveRuntime = replayObjective ? createObjectiveRuntime([replayObjective]) : null;
   let lastCascade: CascadeReport | null = null;
   const events: ReplayEvent[] = [];
 
@@ -136,6 +147,34 @@ export function replayTape(
       if (moved.length > 0) {
         events.push({ kind: "board-movement", moves: moved });
       }
+      if (objectiveRuntime && lastCascade && replayObjective) {
+        const occupiedIcons: Record<string, string | null> = {};
+        const hiddenCellIds: string[] = [];
+        for (const id of board.topology.cellIds) {
+          const cell = getCell(board, id);
+          occupiedIcons[id] = cell.occupant.type === "icon" ? cell.occupant.iconId : null;
+          if (cell.flags.hidden) {
+            hiddenCellIds.push(id);
+          }
+        }
+        const win = ingestCascade(objectiveRuntime, lastCascade, {
+          stats,
+          movesRemaining: null,
+          occupiedIcons,
+          hiddenCellIds,
+          board,
+        });
+        const root = objectiveRuntime.states[replayObjective.id];
+        events.push({
+          kind: "objective",
+          complete: win.complete,
+          label: root?.lastReason,
+          status: root?.status,
+          winState: win.state,
+          current: root?.current,
+          target: root?.target,
+        });
+      }
     } else if (event.kind === "rotation") {
       const result = rotateSection(board, event.sectionId, event.steps);
       events.push({
@@ -144,6 +183,27 @@ export function replayTape(
         steps: event.steps,
         visualAngle: result.visualAngle,
       });
+      if (objectiveRuntime) {
+        objectiveRuntime.sequence += 1;
+        objectiveRuntime.events.push(
+          createObjectiveEvent(
+            "TOPOLOGY_CHANGED",
+            objectiveRuntime.sequence,
+            "after-board-settlement",
+            `Topology changed by rotating ${result.sectionId}.`,
+            { data: { sectionId: result.sectionId, steps: event.steps } },
+          ),
+        );
+        evaluateRuntime(objectiveRuntime, {
+          stats,
+          movesRemaining: null,
+          occupiedIcons: {},
+          hiddenCellIds: [],
+          board,
+          phase: "after-board-settlement",
+          events: objectiveRuntime.events,
+        });
+      }
     }
   }
 

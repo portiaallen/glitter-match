@@ -6,6 +6,7 @@ export {
   labActivateSpecial,
   type SpecialMatchInspection,
 } from "../special-matches/inspect.js";
+export { inspectObjectiveRuntime, type ObjectiveInspection } from "../objectives/inspect.js";
 export {
   inspectPrimitiveOnBoard,
   LAB_PRIMITIVE_RECIPES,

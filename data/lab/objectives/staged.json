@@ -1,0 +1,86 @@
+{
+  "status": "development",
+  "purpose": "engine-fixture",
+  "topology": {
+    "kind": "linear",
+    "notes": "Objective engine fixture. Not a level."
+  },
+  "cells": [
+    {
+      "id": "c0",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "initialIcon": "dev.spark-a"
+    },
+    {
+      "id": "c1",
+      "position": {
+        "x": 1,
+        "y": 0
+      },
+      "initialIcon": "dev.spark-a"
+    },
+    {
+      "id": "c2",
+      "position": {
+        "x": 2,
+        "y": 0
+      },
+      "initialIcon": "dev.spark-b"
+    }
+  ],
+  "connections": [
+    {
+      "from": "c0",
+      "to": "c1",
+      "direction": "e"
+    },
+    {
+      "from": "c1",
+      "to": "c2",
+      "direction": "e"
+    }
+  ],
+  "iconPool": [
+    "dev.spark-a",
+    "dev.spark-b"
+  ],
+  "matchRules": {
+    "minGroupSize": 3,
+    "modes": [
+      "cluster"
+    ]
+  },
+  "placement": {
+    "mode": "authored"
+  },
+  "movement": {
+    "mode": "none",
+    "refill": {
+      "mode": "none"
+    }
+  },
+  "id": "objective.staged",
+  "title": "Staged objective",
+  "notes": "ENGINE TEST FIXTURE ONLY. Not a campaign level. Not rewards or story.",
+  "demoObjective": {
+    "id": "stages",
+    "type": "multi-stage",
+    "stages": [
+      {
+        "id": "stage-1",
+        "type": "score",
+        "score": 1
+      },
+      {
+        "id": "stage-2",
+        "type": "collection",
+        "iconId": "dev.spark-a",
+        "count": 1
+      }
+    ],
+    "accessibilityLabel": "Complete stages in order."
+  }
+}
