@@ -23,7 +23,7 @@ import {
   type WinStateResult,
 } from "../objectives/index.js";
 import type { ObstacleRegistry } from "../obstacles/index.js";
-import { createNewProgression, type PlayerProgression } from "../progression/index.js";
+import { createNewProgression, recordLevelClear, type PlayerProgression } from "../progression/index.js";
 import { createRandomSource, restoreRandomSource, type RandomSource } from "../random/index.js";
 import { createEmptySpecialInventory, type SpecialIconInventory } from "../special-icons/index.js";
 import { createSpecialMatchRuntime } from "../special-matches/index.js";
@@ -216,6 +216,7 @@ export class GameSession {
     const win = evaluateRuntime(this.state.objectiveRuntime, this.objectiveContext());
     if (win.state === "COMPLETED") {
       this.state.status = "won";
+      this.progression = recordLevelClear(this.progression, this.level.id, this.level.land, 0);
       this.grantRewards();
       return;
     }

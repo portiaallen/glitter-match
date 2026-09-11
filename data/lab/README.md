@@ -16,4 +16,6 @@ A future designer can add a completely new shape by authoring another document l
 
 `data/lab/objectives/` holds Objective & Win-State engine fixtures (collection, clearing, score, path, pattern, combo, survival, staged, AND/OR/SEQUENCE, failure). They are also `purpose: "engine-fixture"` and must not become campaign levels.
 
+`data/lab/progression/` holds Progression engine fixture metadata. The development universe/pack/nodes live in `src/progression/fixtures.ts` and must not become campaign levels.
+
 These files must not become production Level DNA automatically. The content validator rejects `lab.*` / `special.*` ids and `data/lab/` paths under the production profile.

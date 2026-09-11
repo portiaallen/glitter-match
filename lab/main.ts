@@ -17,6 +17,18 @@ import objectiveAnd from "../data/lab/objectives/and.json";
 import objectiveOr from "../data/lab/objectives/or.json";
 import objectiveSequence from "../data/lab/objectives/sequence.json";
 import objectiveFailure from "../data/lab/objectives/failure.json";
+import {
+  DEV_PROGRESSION_CATALOG,
+  DEV_PROGRESSION_UNIVERSE,
+  createProgressionRuntime,
+  failAttempt,
+  inspectProgression,
+  restoreProgression,
+  serializeProgression,
+  simulateCompletion,
+  startAttempt,
+  type ProgressionRuntime,
+} from "../src/progression/index.js";
 import { GraphAuthoringSession } from "../src/lab/authoring.js";
 import { createDevelopmentPack } from "../src/content/packs.js";
 import diamond from "../data/lab/diamond.json";
@@ -97,6 +109,8 @@ const specialOut = document.querySelector("#special-out") as HTMLElement;
 const specialFixtureList = document.querySelector("#special-fixture-list") as HTMLUListElement;
 const objectiveFixtureList = document.querySelector("#objective-fixture-list") as HTMLUListElement;
 const objectiveEngineOut = document.querySelector("#objective-engine-out") as HTMLElement;
+const progressionOut = document.querySelector("#progression-out") as HTMLElement;
+const progressionNode = document.querySelector("#progression-node") as HTMLSelectElement;
 
 let primitiveRuntime: PrimitiveRuntime | null = null;
 let primitiveSelection: string[] = [];
@@ -106,6 +120,8 @@ let author = GraphAuthoringSession.fromDocument(current);
 let selected: string[] = [];
 let mode: "play" | "author" = "play";
 let drag: { id: string } | null = null;
+let progressionRuntime: ProgressionRuntime = createProgressionRuntime(DEV_PROGRESSION_UNIVERSE, DEV_PROGRESSION_CATALOG);
+let savedProgression = serializeProgression(progressionRuntime);
 
 function load(document: BoardDocument): BoardPlayground {
   primitiveRuntime = null;
@@ -413,6 +429,9 @@ function render(): void {
     if (objectiveEngineOut) {
       objectiveEngineOut.textContent = formatObjectiveInspect();
     }
+    if (progressionOut) {
+      progressionOut.textContent = formatProgressionInspect();
+    }
     notesEl.textContent = current.notes ?? "";
     statusEl.textContent = `${current.title} · ${inspection.cellIds.length} cells · topology ${inspection.topologyKind} · graph, not a grid`;
   } else {
@@ -580,7 +599,35 @@ function mountFixtureButtons(host: HTMLUListElement, fixtures: typeof FIXTURES):
   }
 }
 
-function formatObjectiveInspect(): string {
+function formatProgressionInspect(): string {
+  const focus = progressionNode?.value || "dev.level.root";
+  const inspection = inspectProgression(progressionRuntime, focus);
+  const focused = inspection.levels[focus];
+  return [
+    `UNIVERSE: ${inspection.universeId} (${inspection.purpose})`,
+    focused?.explanation ?? "Select a fixture node.",
+    `PACK complete: ${inspection.campaign.packs[0]?.complete}`,
+    `LAND complete: ${inspection.campaign.lands[0]?.complete} finaleEligible=${inspection.campaign.lands[0]?.finaleEligible}`,
+    `CAMPAIGN ratio: ${inspection.campaign.completionRatio.toFixed(2)}`,
+    focused?.accessibility.nonColorIndicator,
+    ...inspection.events.slice(-6).map((event) => `${event.kind} ${event.levelId ?? ""}`.trim()),
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+function mountProgressionNodes(): void {
+  if (!progressionNode) {
+    return;
+  }
+  progressionNode.replaceChildren();
+  for (const item of DEV_PROGRESSION_CATALOG) {
+    const option = document.createElement("option");
+    option.value = item.id;
+    option.textContent = item.id;
+    progressionNode.append(option);
+  }
+}
   if (isAuthor()) {
     return "Switch to Play / inspect to inspect objectives.";
   }
@@ -603,6 +650,7 @@ function mountList(): void {
   if (objectiveFixtureList) {
     mountFixtureButtons(objectiveFixtureList, OBJECTIVE_FIXTURES);
   }
+  mountProgressionNodes();
 }
 
 canvas.addEventListener("click", (event) => {
@@ -700,6 +748,63 @@ document.querySelector("#objective-serialize")?.addEventListener("click", () => 
     objectiveEngineOut.textContent = inspection?.serialized ?? "This fixture has no demo objective.";
   }
   statusEl.textContent = "Serialized objective state.";
+});
+document.querySelector("#progression-inspect")?.addEventListener("click", () => {
+  if (progressionOut) {
+    progressionOut.textContent = formatProgressionInspect();
+  }
+  statusEl.textContent = "Progression inspection refreshed.";
+});
+document.querySelector("#progression-complete")?.addEventListener("click", () => {
+  const id = progressionNode?.value || "dev.level.root";
+  try {
+    simulateCompletion(progressionRuntime, id, { score: 20, moveCount: 4 });
+    if (progressionOut) {
+      progressionOut.textContent = formatProgressionInspect();
+    }
+    statusEl.textContent = `Simulated completion of ${id}. No rewards granted.`;
+  } catch (error) {
+    if (progressionOut) {
+      progressionOut.textContent = error instanceof Error ? error.message : String(error);
+    }
+  }
+});
+document.querySelector("#progression-fail")?.addEventListener("click", () => {
+  const id = progressionNode?.value || "dev.level.root";
+  try {
+    const attempt = startAttempt(progressionRuntime, id, "lab-seed");
+    failAttempt(progressionRuntime, attempt.attemptId, { score: 0, moveCount: 1 });
+    if (progressionOut) {
+      progressionOut.textContent = formatProgressionInspect();
+    }
+    statusEl.textContent = `Simulated failure of ${id}.`;
+  } catch (error) {
+    if (progressionOut) {
+      progressionOut.textContent = error instanceof Error ? error.message : String(error);
+    }
+  }
+});
+document.querySelector("#progression-master")?.addEventListener("click", () => {
+  const id = progressionNode?.value || "dev.level.root";
+  try {
+    simulateCompletion(progressionRuntime, id, { score: 50, moveCount: 2, mastered: true });
+    if (progressionOut) {
+      progressionOut.textContent = formatProgressionInspect();
+    }
+    statusEl.textContent = `Simulated mastery of ${id}. Mastery is not completion rewards.`;
+  } catch (error) {
+    if (progressionOut) {
+      progressionOut.textContent = error instanceof Error ? error.message : String(error);
+    }
+  }
+});
+document.querySelector("#progression-serialize")?.addEventListener("click", () => {
+  savedProgression = serializeProgression(progressionRuntime);
+  progressionRuntime = restoreProgression(DEV_PROGRESSION_UNIVERSE, DEV_PROGRESSION_CATALOG, savedProgression);
+  if (progressionOut) {
+    progressionOut.textContent = JSON.stringify(savedProgression, null, 2);
+  }
+  statusEl.textContent = "Serialized and restored progression state.";
 });
 document.querySelector("#special-replay")?.addEventListener("click", () => {
   if (isAuthor()) {
