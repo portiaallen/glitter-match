@@ -5,6 +5,18 @@ import { startPlayground, type BoardPlayground } from "../src/lab/playground.js"
 import { replayTape, occupantSnapshot } from "../src/replay/index.js";
 import lineCreate from "../data/lab/special/line-create.json";
 import adjacentTrigger from "../data/lab/special/adjacent-trigger.json";
+import objectiveCollection from "../data/lab/objectives/collection.json";
+import objectiveClearing from "../data/lab/objectives/clearing.json";
+import objectiveScore from "../data/lab/objectives/score.json";
+import objectivePath from "../data/lab/objectives/path.json";
+import objectivePattern from "../data/lab/objectives/pattern.json";
+import objectiveCombo from "../data/lab/objectives/combo.json";
+import objectiveSurvival from "../data/lab/objectives/survival.json";
+import objectiveStaged from "../data/lab/objectives/staged.json";
+import objectiveAnd from "../data/lab/objectives/and.json";
+import objectiveOr from "../data/lab/objectives/or.json";
+import objectiveSequence from "../data/lab/objectives/sequence.json";
+import objectiveFailure from "../data/lab/objectives/failure.json";
 import { GraphAuthoringSession } from "../src/lab/authoring.js";
 import { createDevelopmentPack } from "../src/content/packs.js";
 import diamond from "../data/lab/diamond.json";
@@ -21,9 +33,20 @@ const FIXTURES = [diamond, heart, ring, spiral, twin, islands, cascade, dead, se
   parseBoardDocument(raw),
 );
 const SPECIAL_FIXTURES = [lineCreate, adjacentTrigger].map((raw) => parseBoardDocument(raw));
-const OBJECTIVE_FIXTURES = Object.values(
-  import.meta.glob("../data/lab/objectives/*.json", { eager: true, import: "default" }),
-).map((raw) => parseBoardDocument(raw));
+const OBJECTIVE_FIXTURES = [
+  objectiveCollection,
+  objectiveClearing,
+  objectiveScore,
+  objectivePath,
+  objectivePattern,
+  objectiveCombo,
+  objectiveSurvival,
+  objectiveStaged,
+  objectiveAnd,
+  objectiveOr,
+  objectiveSequence,
+  objectiveFailure,
+].map((raw) => parseBoardDocument(raw));
 const pack = createDevelopmentPack();
 const SCALE = 56;
 const RADIUS = 22;
@@ -75,14 +98,14 @@ const specialFixtureList = document.querySelector("#special-fixture-list") as HT
 const objectiveFixtureList = document.querySelector("#objective-fixture-list") as HTMLUListElement;
 const objectiveEngineOut = document.querySelector("#objective-engine-out") as HTMLElement;
 
+let primitiveRuntime: PrimitiveRuntime | null = null;
+let primitiveSelection: string[] = [];
 let current = FIXTURES[0]!;
 let playground = load(current);
 let author = GraphAuthoringSession.fromDocument(current);
 let selected: string[] = [];
 let mode: "play" | "author" = "play";
 let drag: { id: string } | null = null;
-let primitiveRuntime: PrimitiveRuntime | null = null;
-let primitiveSelection: string[] = [];
 
 function load(document: BoardDocument): BoardPlayground {
   primitiveRuntime = null;
