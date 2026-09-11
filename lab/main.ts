@@ -628,6 +628,8 @@ function mountProgressionNodes(): void {
     progressionNode.append(option);
   }
 }
+
+function formatObjectiveInspect(): string {
   if (isAuthor()) {
     return "Switch to Play / inspect to inspect objectives.";
   }
