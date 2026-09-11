@@ -181,8 +181,8 @@ describe("Level DNA and content architecture", () => {
     expect(packManifest.universeId).toBe(UNIVERSE_ID);
     expect(packManifest.levelIds).toEqual([]);
     expect(packManifest.schemaVersion).toBe(SCHEMA_VERSION);
-    expect(versionsCompatible("9.1.0", SCHEMA_VERSION)).toBe(true);
-    expect(versionsCompatible("8.0.0", SCHEMA_VERSION)).toBe(false);
+    expect(versionsCompatible("10.1.0", SCHEMA_VERSION)).toBe(true);
+    expect(versionsCompatible("9.0.0", SCHEMA_VERSION)).toBe(false);
     const a = emptyDifficultyVector();
     const b = { ...a, movePressure: 4 };
     expect(compareDifficulty(b, a).movePressure).toBe(4);

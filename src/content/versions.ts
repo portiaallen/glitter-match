@@ -1,7 +1,7 @@
 /** Schema/content versions for independently versionable packs. */
 
-export const SCHEMA_VERSION = "9.0.0" as const;
-export const CONTENT_VERSION = "0.6.0-objectives" as const;
+export const SCHEMA_VERSION = "10.0.0" as const;
+export const CONTENT_VERSION = "0.7.0-progression" as const;
 
 export interface VersionRecord {
   schemaVersion: string;
@@ -44,8 +44,8 @@ export interface MigrationHook {
 
 export const MIGRATION_HOOKS: readonly MigrationHook[] = [
   {
-    fromSchemaVersion: "8.0.0",
+    fromSchemaVersion: "9.0.0",
     toSchemaVersion: SCHEMA_VERSION,
-    note: "Objective & Win-State Engine is additive. No production content exists to migrate.",
+    note: "Progression & Level-State Engine is additive. No production campaign exists to migrate.",
   },
 ];

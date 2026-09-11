@@ -37,7 +37,7 @@ movePressure, topologyComplexity, obstacleDensity, objectiveComplexity, mechanic
 
 Supports designer ratings, validation, future analytics, and future adaptive difficulty. Adaptive difficulty is not implemented.
 
-Progression is intentionally non-linear. Rest levels are first-class.
+Progression is intentionally non-linear. Rest levels are first-class. The Progression Engine stores player progress separately from Level DNA. See `PROGRESSION_ENGINE.md`. It does not author the 640-level campaign.
 
 ## Rule of Three
 

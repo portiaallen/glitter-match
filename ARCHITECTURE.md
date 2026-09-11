@@ -88,7 +88,7 @@ Obstacles are handlers registered by type. The board stores instances (`type`, `
 
 ## Authoritative state vs presentation
 
-`AuthoritativeGameState` is the session. `PresentationState` holds selection, highlights, pending cascade steps, and accessibility settings.
+`AuthoritativeGameState` is the session. `PresentationState` holds selection, highlights, pending cascade steps, and accessibility settings. `PlayerProgression` is save data: it must not be written back into level JSON. See `PROGRESSION_ENGINE.md`.
 
 Accessibility is a contract from day one: pattern+label (not color-only), text scale, reduced motion, large hit targets, audio/haptics controls. No full settings UI yet.
 
@@ -205,6 +205,7 @@ Board Lab controls use large hit targets, high-contrast text, focus rings, keybo
 | Rotation Engine | How graph regions transform |
 | Objective Engine | What the player must accomplish (registered handlers + state) |
 | Win-State Resolver | Whether the level is IN_PROGRESS / COMPLETED / FAILED |
+| Progression Engine | Level availability, attempts, completion, mastery, unlocks, aggregates |
 | Obstacle System | What blocks or modifies interaction |
 | Land DNA | Mechanical vocabulary of each Land |
 | Land Mechanic Registry | Handler contracts, effects, composition |

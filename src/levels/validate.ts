@@ -120,7 +120,7 @@ export function toBoardDefinition(level: LevelDefinition): BoardDefinition {
 }
 
 export function isLaboratoryFixtureId(id: string): boolean {
-  return id.startsWith("lab.") || id.startsWith("lab/") || id.startsWith("special.") || id.startsWith("objective.");
+  return id.startsWith("lab.") || id.startsWith("lab/") || id.startsWith("special.") || id.startsWith("objective.") || id.startsWith("progression.") || id.startsWith("dev.level.") || id.startsWith("dev.pack.") || id.startsWith("dev.universe");
 }
 
 function validateDevFixturePolicy(
