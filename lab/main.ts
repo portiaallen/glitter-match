@@ -21,6 +21,9 @@ const FIXTURES = [diamond, heart, ring, spiral, twin, islands, cascade, dead, se
   parseBoardDocument(raw),
 );
 const SPECIAL_FIXTURES = [lineCreate, adjacentTrigger].map((raw) => parseBoardDocument(raw));
+const OBJECTIVE_FIXTURES = Object.values(
+  import.meta.glob("../data/lab/objectives/*.json", { eager: true, import: "default" }),
+).map((raw) => parseBoardDocument(raw));
 const pack = createDevelopmentPack();
 const SCALE = 56;
 const RADIUS = 22;
@@ -69,6 +72,8 @@ const primitiveRecipe = document.querySelector("#primitive-recipe") as HTMLSelec
 const primitiveOut = document.querySelector("#primitive-out") as HTMLElement;
 const specialOut = document.querySelector("#special-out") as HTMLElement;
 const specialFixtureList = document.querySelector("#special-fixture-list") as HTMLUListElement;
+const objectiveFixtureList = document.querySelector("#objective-fixture-list") as HTMLUListElement;
+const objectiveEngineOut = document.querySelector("#objective-engine-out") as HTMLElement;
 
 let current = FIXTURES[0]!;
 let playground = load(current);
@@ -382,6 +387,9 @@ function render(): void {
       specialOut.textContent = formatSpecialInspect();
     }
     objectiveEl.textContent = inspection.objective ? JSON.stringify(inspection.objective, null, 2) : "(no demo objective on this fixture)";
+    if (objectiveEngineOut) {
+      objectiveEngineOut.textContent = formatObjectiveInspect();
+    }
     notesEl.textContent = current.notes ?? "";
     statusEl.textContent = `${current.title} · ${inspection.cellIds.length} cells · topology ${inspection.topologyKind} · graph, not a grid`;
   } else {
@@ -549,10 +557,28 @@ function mountFixtureButtons(host: HTMLUListElement, fixtures: typeof FIXTURES):
   }
 }
 
+function formatObjectiveInspect(): string {
+  if (isAuthor()) {
+    return "Switch to Play / inspect to inspect objectives.";
+  }
+  const inspection = playground.inspectObjectives();
+  if (!inspection) {
+    return "This fixture has no demo objective. Load an Objective fixture.";
+  }
+  return [
+    inspection.win,
+    ...inspection.explanations,
+    ...inspection.accessibility.map((item) => item.progressText),
+  ].join("\n\n");
+}
+
 function mountList(): void {
   mountFixtureButtons(fixtureList, FIXTURES);
   if (specialFixtureList) {
     mountFixtureButtons(specialFixtureList, SPECIAL_FIXTURES);
+  }
+  if (objectiveFixtureList) {
+    mountFixtureButtons(objectiveFixtureList, OBJECTIVE_FIXTURES);
   }
 }
 
@@ -632,6 +658,25 @@ document.querySelector("#special-serialize")?.addEventListener("click", () => {
     specialOut.textContent = inspection.serialized;
   }
   statusEl.textContent = "Serialized Special Match state.";
+});
+document.querySelector("#objective-inspect")?.addEventListener("click", () => {
+  if (objectiveEngineOut) {
+    objectiveEngineOut.textContent = formatObjectiveInspect();
+  }
+  statusEl.textContent = "Objective inspection refreshed.";
+});
+document.querySelector("#objective-serialize")?.addEventListener("click", () => {
+  if (isAuthor()) {
+    if (objectiveEngineOut) {
+      objectiveEngineOut.textContent = "Switch to Play / inspect to serialize objectives.";
+    }
+    return;
+  }
+  const inspection = playground.inspectObjectives();
+  if (objectiveEngineOut) {
+    objectiveEngineOut.textContent = inspection?.serialized ?? "This fixture has no demo objective.";
+  }
+  statusEl.textContent = "Serialized objective state.";
 });
 document.querySelector("#special-replay")?.addEventListener("click", () => {
   if (isAuthor()) {

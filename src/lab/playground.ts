@@ -13,7 +13,21 @@ import {
   type SwapMove,
 } from "../fairness/index.js";
 import { detectMatches, runMatchResolution, type MatchGroup, type MatchResolution, type MatchRules } from "../matching/index.js";
-import { createEmptyStats, createObjective, type GameStats, type Objective, type ObjectiveDefinition, type ObjectiveProgress } from "../objectives/index.js";
+import {
+  createEmptyStats,
+  createObjective,
+  createObjectiveEvent,
+  createObjectiveRuntime,
+  evaluateRuntime,
+  ingestCascade,
+  inspectObjectiveRuntime,
+  type GameStats,
+  type Objective,
+  type ObjectiveDefinition,
+  type ObjectiveInspection,
+  type ObjectiveProgress,
+  type ObjectiveRuntime,
+} from "../objectives/index.js";
 import type { EngineRegistries } from "../state/session.js";
 import { createRandomSource, type RandomSource } from "../random/index.js";
 import { issue, throwIfErrors } from "../validation.js";
@@ -62,6 +76,7 @@ export class BoardPlayground {
   cascadeCount = 0;
   tape: ReplayTape;
   specialRuntime: SpecialMatchRuntime;
+  objectiveRuntime: ObjectiveRuntime | null;
   private random: RandomSource;
   private readonly objective: Objective | null;
 
@@ -79,6 +94,9 @@ export class BoardPlayground {
       : null;
     this.board = this.placeBoard();
     this.specialRuntime = createSpecialMatchRuntime();
+    this.objectiveRuntime = options.document.demoObjective
+      ? createObjectiveRuntime([options.document.demoObjective as ObjectiveDefinition], options.document.winState)
+      : null;
     this.tape = createEmptyTape(this.seed, this.definition, this.board);
     if (options.resolveInitialMatches) {
       this.resolveMatches();
@@ -111,6 +129,13 @@ export class BoardPlayground {
 
   inspectSpecialMatches(): SpecialMatchInspection {
     return inspectSpecialMatches(this.board, this.matchRules, this.registries.icons, this.specialRuntime);
+  }
+
+  inspectObjectives(): ObjectiveInspection | null {
+    if (!this.objectiveRuntime) {
+      return null;
+    }
+    return inspectObjectiveRuntime(this.objectiveRuntime, this.objectiveEvalContext());
   }
 
   queueSpecialActivation(instanceId: string): void {
@@ -149,6 +174,23 @@ export class BoardPlayground {
       steps,
       visualAngle: result.visualAngle,
     });
+    if (this.objectiveRuntime) {
+      this.objectiveRuntime.sequence += 1;
+      this.objectiveRuntime.events.push(
+        createObjectiveEvent(
+          "TOPOLOGY_CHANGED",
+          this.objectiveRuntime.sequence,
+          "after-board-settlement",
+          `Topology changed by rotating ${result.sectionId}.`,
+          { data: { sectionId: result.sectionId, steps } },
+        ),
+      );
+      evaluateRuntime(this.objectiveRuntime, {
+        ...this.objectiveEvalContext(),
+        phase: "after-board-settlement",
+        events: this.objectiveRuntime.events,
+      });
+    }
     return result;
   }
 
@@ -194,6 +236,10 @@ export class BoardPlayground {
     if (!this.objective) {
       return null;
     }
+    return this.objective.evaluate(this.objectiveEvalContext());
+  }
+
+  private objectiveEvalContext() {
     const occupiedIcons: Record<string, string | null> = {};
     const hiddenCellIds: string[] = [];
     for (const id of this.board.topology.cellIds) {
@@ -203,12 +249,14 @@ export class BoardPlayground {
         hiddenCellIds.push(id);
       }
     }
-    return this.objective.evaluate({
+    return {
       stats: this.stats,
-      movesRemaining: null,
+      movesRemaining: null as number | null,
       occupiedIcons,
       hiddenCellIds,
-    });
+      board: this.board,
+      events: this.objectiveRuntime?.events,
+    };
   }
 
   rngSnapshot() {
@@ -246,6 +294,9 @@ export class BoardPlayground {
     });
     this.lastCascade = report;
     this.cascadeCount = report.combo;
+    if (this.objectiveRuntime) {
+      ingestCascade(this.objectiveRuntime, report, this.objectiveEvalContext());
+    }
     const cleared = report.steps.flatMap((step) => step.clearedCellIds);
     this.tape = appendReplayEvent(this.tape, {
       kind: "match-detection",

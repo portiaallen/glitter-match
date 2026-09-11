@@ -107,7 +107,7 @@ Reusable gameplay primitives live in `src/primitives/` and are documented in `ME
 
 ## Objectives and obstacles
 
-Objective types: collection, clearing, path, score, combo, precision, survival, pattern, discovery, multi-stage, hybrid.
+Objective types: collection, clearing, path, score, combo, precision, survival, pattern, discovery, multi-stage, hybrid. These are engine categories, not production level designs. Evaluation is handler-based (`ObjectiveRegistry`), not `if (type === …)` chains. A level may compose one, many, staged, or hybrid objectives. Win-state policies (`ALL_REQUIRED_OBJECTIVES`, `ANY_REQUIRED_OBJECTIVE`, `SEQUENCE_COMPLETE`, plus independent failure policies) live on the level, not inside a single objective. Optional and mastery objectives are distinguishable and do not block basic completion unless configured. See `OBJECTIVE_ENGINE.md`.
 
 Obstacles expose blocking, match/movement/cascade hooks, serialization, and an accessibility description. Implemented now: lock, ice. Other types remain reserved.
 

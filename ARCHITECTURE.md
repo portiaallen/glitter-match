@@ -82,7 +82,7 @@ Special Icons are catalogued as universal inventory (`glitter-bomb`, `glitter-ha
 
 ## Objectives and obstacles
 
-Objectives evaluate `GameStats` and board occupancy. They do not read sprites, tweens, or DOM.
+Objectives are registered handlers (collection, clearing, path, score, combo, precision, survival, pattern, discovery, multi-stage, hybrid). They evaluate authoritative `GameStats`, events, and board occupancy. They do not read sprites, tweens, or DOM. A dedicated Win-State Resolver turns required/optional/mastery objective statuses into `IN_PROGRESS` / `COMPLETED` / `FAILED` using explicit completion, failure, and conflict policies. See `OBJECTIVE_ENGINE.md`. Completion is not mastery and does not grant currency.
 
 Obstacles are handlers registered by type. The board stores instances (`type`, `durability`, `config`). Implemented now: `lock`, `ice`. Reserved types fail validation until implemented so levels cannot smuggle unimplemented content.
 
@@ -203,7 +203,8 @@ Board Lab controls use large hit targets, high-contrast text, focus rings, keybo
 | Cascade Engine | What happens after a match, including specials |
 | Flow Engine | How pieces move through the graph |
 | Rotation Engine | How graph regions transform |
-| Objective System | What the player must accomplish |
+| Objective Engine | What the player must accomplish (registered handlers + state) |
+| Win-State Resolver | Whether the level is IN_PROGRESS / COMPLETED / FAILED |
 | Obstacle System | What blocks or modifies interaction |
 | Land DNA | Mechanical vocabulary of each Land |
 | Land Mechanic Registry | Handler contracts, effects, composition |

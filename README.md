@@ -2,7 +2,7 @@
 
 Glitter Match is an unconventional match-puzzle game in the Glitter Universe. The board is a **graph of playable cells**, not a rectangular matrix. Board shape and topology are part of the puzzle.
 
-This repository currently contains the **engine, Board Laboratory, content-architecture contracts, Land DNA, mechanic primitives, match rules, and the Special Match engine**. There is no campaign. **640 levels are future content and are not part of this implementation.**
+This repository currently contains the **engine, Board Laboratory, content-architecture contracts, Land DNA, mechanic primitives, match rules, Special Match engine, and the Objective & Win-State engine**. There is no campaign. **640 levels are future content and are not part of this implementation.**
 
 Core philosophy: *Simple to understand. Difficult to master. Impossible to completely predict.*
 
@@ -41,7 +41,7 @@ src/
   gates/          Future Gate reference contract
   universe/       Sanctuary / Museum / Personal Story references
   obstacles/      Obstacle handlers
-  objectives/     Objective framework
+  objectives/     Objective Registry, handlers, win-state resolver
   special-icons/  Universal Special Icon inventory (not Special Matches)
   economy/        Reward definitions
   progression/    Player unlock/completion state
@@ -57,9 +57,11 @@ src/
 data/dev/         Development-only level fixture (not campaign content)
 data/lab/         Board Laboratory topology fixtures (not levels)
 data/lab/match/   Match-engine test fixtures (not levels, not in the visual catalog)
+data/lab/objectives/ Objective-engine fixtures (not levels, not campaign content)
 LAND_DNA.md       Eight Land mechanical identities (not puzzles)
 MATCH_RULES.md    Match Rule & Pattern Engine (graph-authoritative)
 SPECIAL_MATCH_ENGINE.md  Board Special Matches (not inventory Special Icons)
+OBJECTIVE_ENGINE.md  Objective Registry + Win-State Resolver (not levels)
 MECHANIC_PRIMITIVES.md  Reusable engine primitives (not Land mechanics)
 lab/              Developer Board Laboratory visualizer + authoring helper
 tests/            Engine tests (no UI)
@@ -128,6 +130,8 @@ Click two cells to see why they can or cannot interact (graph edges, not x±1/y�
 Play / inspect can trigger **mechanic primitive recipes** on the current fixture (disable edge, lock, swap, pair, region, path, threshold). That inspects reusable engine blocks. It is not a campaign editor and not a Land mechanic.
 
 The **Special Match** panel inspects candidates, created board specials, activation, effects, cascade steps, serialization, and replay. Those are board Special Matches created by matching — not inventory Special Icons. Fixtures under `data/lab/special/` are engine tests only.
+
+The **Objectives** panel inspects engine-test objective fixtures, progress, win-state explanations, failure, dependencies, serialization, and replay. Completion is not mastery and does not grant currency. Fixtures under `data/lab/objectives/` are engine tests only.
 
 ## How to author an irregular board
 

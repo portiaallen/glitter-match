@@ -3,7 +3,7 @@ import type { Board } from "../board/index.js";
 import type { CascadeReport } from "../cascade/index.js";
 import type { EarnedReward } from "../economy/index.js";
 import type { LevelDefinition } from "../levels/index.js";
-import type { GameStats, ObjectiveProgress } from "../objectives/index.js";
+import type { GameStats, ObjectiveProgress, ObjectiveRuntime } from "../objectives/index.js";
 import type { PlayerProgression } from "../progression/index.js";
 import type { RandomSnapshot } from "../random/index.js";
 import type { MechanicState } from "../mechanics/index.js";
@@ -25,6 +25,8 @@ export interface AuthoritativeGameState {
   specialInventory: SpecialIconInventory;
   /** Board Special Matches. Distinct from inventory Special Icons. */
   specialMatches: SpecialMatchRuntime;
+  /** Objective runtime. Distinct from mastery and from rewards. */
+  objectiveRuntime: ObjectiveRuntime;
   earnedRewards: EarnedReward[];
   status: SessionStatus;
   rng: RandomSnapshot;

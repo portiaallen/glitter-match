@@ -32,6 +32,9 @@
         <h2>Special Match fixtures</h2>
         <p class="hint">Engine tests only. Not campaign content. Not inventory Special Icons.</p>
         <ul id="special-fixture-list"></ul>
+        <h2>Objective fixtures</h2>
+        <p class="hint">Engine tests only. Not campaign levels.</p>
+        <ul id="objective-fixture-list"></ul>
       </nav>
       <main id="board" class="stage">
         <svg id="canvas" role="img" aria-label="Board topology visualization"></svg>
@@ -106,6 +109,15 @@
             <button type="button" id="special-replay">Replay tape</button>
           </div>
           <pre id="special-out" role="status"></pre>
+        </section>
+        <section id="objective-panel">
+          <h3>Objectives</h3>
+          <p class="hint">Engine inspect only. Win state is not mastery and does not grant currency.</p>
+          <div class="actions">
+            <button type="button" id="objective-inspect">Inspect objectives</button>
+            <button type="button" id="objective-serialize">Serialize objective state</button>
+          </div>
+          <pre id="objective-engine-out" role="status"></pre>
         </section>
         <div class="actions">
           <button type="button" id="resolve">Resolve matches</button>

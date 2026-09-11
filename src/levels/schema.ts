@@ -38,6 +38,8 @@ const objectiveSchema: z.ZodTypeAny = z.lazy(() =>
     .object({
       id: z.string().min(1),
       type: z.enum(OBJECTIVE_TYPES),
+      version: z.string().optional(),
+      role: z.enum(["required", "optional", "mastery"]).optional(),
       iconId: z.string().optional(),
       count: z.number().int().positive().optional(),
       score: z.number().int().nonnegative().optional(),
@@ -51,11 +53,33 @@ const objectiveSchema: z.ZodTypeAny = z.lazy(() =>
       stages: z.array(objectiveSchema).optional(),
       children: z.array(objectiveSchema).optional(),
       mode: z.enum(["all", "any"]).optional(),
+      composition: z.enum(["and", "or", "sequence", "not"]).optional(),
       dependsOn: z.array(z.string().min(1)).optional(),
       accessibilityLabel: z.string().optional(),
+      countUnit: z.string().optional(),
+      targetKind: z.enum(["icon", "cell", "artifact", "state", "event"]).optional(),
+      countPlayerMatches: z.boolean().optional(),
+      countCascades: z.boolean().optional(),
+      countSpecialMatches: z.boolean().optional(),
+      countObstacles: z.boolean().optional(),
+      maxCount: z.number().int().positive().optional(),
+      pathMode: z.enum(["cleared-endpoints", "graph"]).optional(),
+      minPathLength: z.number().int().positive().optional(),
+      patternId: z.string().optional(),
+      comboEvents: z.array(z.string().min(1)).optional(),
+      forbiddenEvents: z.array(z.string().min(1)).optional(),
+      surviveMoves: z.number().int().positive().optional(),
     })
     .strict(),
 );
+
+const winStateSchema = z
+  .object({
+    completionPolicy: z.enum(["ALL_REQUIRED_OBJECTIVES", "ANY_REQUIRED_OBJECTIVE", "SEQUENCE_COMPLETE", "CUSTOM_REGISTERED_POLICY"]).optional(),
+    failurePolicy: z.enum(["NONE", "ANY_FAILURE", "ALL_FAILURES", "MOVE_LIMIT", "REGISTERED_FAILURE_CONDITION"]).optional(),
+    conflictPolicy: z.enum(["completion-first", "failure-first"]).optional(),
+  })
+  .strict();
 
 const rewardSchema = z
   .object({
@@ -121,6 +145,7 @@ export const levelDefinitionSchema = z
     movementModel: levelMovementModelSchema.optional(),
     objective: objectiveSchema,
     objectives: z.array(objectiveSchema).optional(),
+    winState: winStateSchema.optional(),
     obstacles: z.array(obstaclePlacementSchema).optional(),
     mechanics: z
       .array(
