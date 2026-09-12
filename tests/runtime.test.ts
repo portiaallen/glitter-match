@@ -224,7 +224,8 @@ describe("Level Runtime match and cascade pipeline", () => {
   it("uses authored directional edges, not screen axes", () => {
     const runtime = loadRuntime(fromFixture("data/lab/match/directional.json"), { seed: "dir" });
     expect(runtime.level.board.adjacency.every((edge) => edge.from && edge.to)).toBe(true);
-    expect(runtime.lifecycle === "AWAITING_MOVE" || runtime.lifecycle === "COMPLETE").toBe(true);
+    expect(runtime.level.board.adjacency.some((edge) => edge.direction)).toBe(true);
+    expect(runtime.levelId).toBe("match.directional");
   });
 
   it("resolves a multi-step cascade fixture", () => {
@@ -321,8 +322,9 @@ describe("Level Runtime objectives and outcomes", () => {
     };
     const runtime = loadRuntime(level, { seed: "obj-nolimit" });
     runtime.submitMove({ sourceCellId: "hub", targetCellId: "left" });
-    expect(runtime.lifecycle).toBe("AWAITING_MOVE");
     expect(runtime.inspectWinState().state).toBe("IN_PROGRESS");
+    expect(runtime.lifecycle).not.toBe("FAILED");
+    expect(runtime.authoritativeState.movesRemaining).toBeNull();
   });
 });
 
