@@ -29,6 +29,14 @@ import {
   startAttempt,
   type ProgressionRuntime,
 } from "../src/progression/index.js";
+import {
+  developmentLevelFromBoardDocument,
+  formatRuntimeInspect,
+  loadLevelRuntime,
+  replayLevelRuntime,
+  type LevelRuntime,
+  type RuntimeSnapshot,
+} from "../src/runtime/index.js";
 import { GraphAuthoringSession } from "../src/lab/authoring.js";
 import { createDevelopmentPack } from "../src/content/packs.js";
 import diamond from "../data/lab/diamond.json";
@@ -111,8 +119,11 @@ const objectiveFixtureList = document.querySelector("#objective-fixture-list") a
 const objectiveEngineOut = document.querySelector("#objective-engine-out") as HTMLElement;
 const progressionOut = document.querySelector("#progression-out") as HTMLElement;
 const progressionNode = document.querySelector("#progression-node") as HTMLSelectElement;
+const runtimeOut = document.querySelector("#runtime-out") as HTMLElement;
 
 let primitiveRuntime: PrimitiveRuntime | null = null;
+let levelRuntime: LevelRuntime | null = null;
+let runtimeSnapshot: RuntimeSnapshot | null = null;
 let primitiveSelection: string[] = [];
 let current = FIXTURES[0]!;
 let playground = load(current);
@@ -629,6 +640,23 @@ function mountProgressionNodes(): void {
   }
 }
 
+function bootLevelRuntime(): LevelRuntime {
+  return loadLevelRuntime({
+    level: developmentLevelFromBoardDocument(current),
+    registries: pack,
+    seed: seedInput.value || "lab-seed",
+    validation: { ...pack, profile: "development" },
+    progressionRuntime,
+    trace: true,
+  });
+}
+
+function writeRuntimeOut(text: string): void {
+  if (runtimeOut) {
+    runtimeOut.textContent = text;
+  }
+}
+
 function formatObjectiveInspect(): string {
   if (isAuthor()) {
     return "Switch to Play / inspect to inspect objectives.";
@@ -807,6 +835,93 @@ document.querySelector("#progression-serialize")?.addEventListener("click", () =
     progressionOut.textContent = JSON.stringify(savedProgression, null, 2);
   }
   statusEl.textContent = "Serialized and restored progression state.";
+});
+document.querySelector("#runtime-load")?.addEventListener("click", () => {
+  try {
+    levelRuntime = bootLevelRuntime();
+    runtimeSnapshot = null;
+    writeRuntimeOut(formatRuntimeInspect(levelRuntime));
+    statusEl.textContent = `Loaded LevelRuntime for ${current.id}. Development fixture only.`;
+  } catch (error) {
+    writeRuntimeOut(error instanceof Error ? error.message : String(error));
+    statusEl.textContent = "Runtime load failed.";
+  }
+});
+document.querySelector("#runtime-inspect")?.addEventListener("click", () => {
+  if (!levelRuntime) {
+    writeRuntimeOut("Load a runtime first.");
+    return;
+  }
+  writeRuntimeOut(formatRuntimeInspect(levelRuntime));
+  statusEl.textContent = "Runtime inspection refreshed.";
+});
+document.querySelector("#runtime-move")?.addEventListener("click", () => {
+  if (!levelRuntime) {
+    writeRuntimeOut("Load a runtime first.");
+    return;
+  }
+  if (selected.length < 2) {
+    writeRuntimeOut("Select two cells. The runtime asks the graph, not x/y distance.");
+    return;
+  }
+  const result = levelRuntime.submitMove({ sourceCellId: selected[0]!, targetCellId: selected[1]! });
+  writeRuntimeOut(
+    [
+      formatRuntimeInspect(levelRuntime),
+      "",
+      result.accepted ? `MOVE_ACCEPTED turn ${result.turnNumber}` : `${result.rejection?.code ?? result.error?.code}: ${result.rejection?.reason ?? result.error?.message}`,
+      `matches: ${result.matches.length} specials+:${result.specialMatchesCreated.length} activated:${result.specialMatchesActivated.length} cascades:${result.cascadeCount}`,
+      `outcome: ${result.outcome?.state ?? "n/a"}`,
+      ...result.trace.map((step) => `  ${step.stage}${step.detail ? ` — ${step.detail}` : ""}`),
+    ].join("\n"),
+  );
+  statusEl.textContent = result.accepted ? `Runtime committed turn ${result.turnNumber}.` : "Runtime rejected the move.";
+});
+document.querySelector("#runtime-snapshot")?.addEventListener("click", () => {
+  if (!levelRuntime) {
+    writeRuntimeOut("Load a runtime first.");
+    return;
+  }
+  runtimeSnapshot = levelRuntime.snapshot();
+  writeRuntimeOut(`Snapshot stored. hash=${runtimeSnapshot.gameplay.stateHash.slice(0, 64)}…`);
+  statusEl.textContent = "Runtime snapshot captured.";
+});
+document.querySelector("#runtime-restore")?.addEventListener("click", () => {
+  if (!levelRuntime || !runtimeSnapshot) {
+    writeRuntimeOut("Load a runtime and take a snapshot first.");
+    return;
+  }
+  levelRuntime.restore(runtimeSnapshot);
+  writeRuntimeOut(formatRuntimeInspect(levelRuntime));
+  statusEl.textContent = "Runtime snapshot restored.";
+});
+document.querySelector("#runtime-replay")?.addEventListener("click", () => {
+  if (!levelRuntime) {
+    writeRuntimeOut("Load a runtime first.");
+    return;
+  }
+  try {
+    const replayed = replayLevelRuntime(
+      {
+        level: developmentLevelFromBoardDocument(current),
+        registries: pack,
+        seed: levelRuntime.seed,
+        validation: { ...pack, profile: "development" },
+        trace: true,
+      },
+      levelRuntime.replay,
+    );
+    writeRuntimeOut(
+      [
+        formatRuntimeInspect(replayed),
+        `original hash match: ${replayed.stateHash() === levelRuntime.stateHash()}`,
+      ].join("\n"),
+    );
+    statusEl.textContent = "Runtime replay finished.";
+  } catch (error) {
+    writeRuntimeOut(error instanceof Error ? error.message : String(error));
+    statusEl.textContent = "Runtime replay failed.";
+  }
 });
 document.querySelector("#special-replay")?.addEventListener("click", () => {
   if (isAuthor()) {
