@@ -1,7 +1,7 @@
 /** Schema/content versions for independently versionable packs. */
 
 export const SCHEMA_VERSION = "10.0.0" as const;
-export const CONTENT_VERSION = "0.7.0-progression" as const;
+export const CONTENT_VERSION = "0.8.0-runtime" as const;
 
 export interface VersionRecord {
   schemaVersion: string;
@@ -47,5 +47,10 @@ export const MIGRATION_HOOKS: readonly MigrationHook[] = [
     fromSchemaVersion: "9.0.0",
     toSchemaVersion: SCHEMA_VERSION,
     note: "Progression & Level-State Engine is additive. No production campaign exists to migrate.",
+  },
+  {
+    fromSchemaVersion: "10.0.0",
+    toSchemaVersion: SCHEMA_VERSION,
+    note: "Level Runtime is additive orchestration. Schema unchanged; no production campaign exists to migrate.",
   },
 ];
