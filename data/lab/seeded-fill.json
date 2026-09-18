@@ -1,0 +1,34 @@
+{
+  "id": "lab.seeded-fill",
+  "status": "development",
+  "purpose": "engine-fixture",
+  "title": "Seeded Fill",
+  "shape": "boomerang",
+  "notes": "ENGINE TEST FIXTURE ONLY. Empty cells filled by SeededRandom. Identical seeds must reproduce; different seeds may differ.",
+  "topology": {
+    "kind": "custom",
+    "notes": "Boomerang graph used only to prove deterministic placement."
+  },
+  "cells": [
+    { "id": "k0", "position": { "x": -2, "y": -1 } },
+    { "id": "k1", "position": { "x": -1, "y": 0 } },
+    { "id": "k2", "position": { "x": 0, "y": 1 } },
+    { "id": "k3", "position": { "x": 1, "y": 0 } },
+    { "id": "k4", "position": { "x": 2, "y": -1 } },
+    { "id": "k5", "position": { "x": 0, "y": -0.2 } },
+    { "id": "k6", "position": { "x": 0, "y": 2.1 } }
+  ],
+  "connections": [
+    { "from": "k0", "to": "k1" },
+    { "from": "k1", "to": "k2" },
+    { "from": "k2", "to": "k3" },
+    { "from": "k3", "to": "k4" },
+    { "from": "k1", "to": "k5" },
+    { "from": "k3", "to": "k5" },
+    { "from": "k2", "to": "k6" }
+  ],
+  "iconPool": ["dev.spark-a", "dev.spark-b", "dev.spark-c"],
+  "matchRules": { "minGroupSize": 3, "modes": ["cluster"] },
+  "placement": { "mode": "seeded-random", "seedSalt": "lab-fill" },
+  "movement": { "mode": "none", "refill": { "mode": "none" } }
+}

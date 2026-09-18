@@ -9,11 +9,16 @@ export class ValidationError extends Error {
   readonly issues: ValidationIssue[];
 
   constructor(issues: ValidationIssue[], heading = "Validation failed") {
-    const details = issues
-      .map((issue) => `[${issue.severity}] ${issue.path}: ${issue.message} (${issue.code})`)
-      .join("\n");
-    super(`${heading}\n${details}`);
-    this.name = "ValidationError";
+    const focus = issues.filter((item) => item.severity === "error");
+    const listed = focus.length > 0 ? focus : issues;
+    const details =
+      heading === "BoardValidationError"
+        ? listed.map((item) => `BoardValidationError: ${item.message}`).join("\n")
+        : listed
+            .map((item) => `[${item.severity}] ${item.path}: ${item.message} (${item.code})`)
+            .join("\n");
+    super(heading === "BoardValidationError" ? details : `${heading}\n${details}`);
+    this.name = heading === "BoardValidationError" ? "BoardValidationError" : "ValidationError";
     this.issues = issues;
   }
 }

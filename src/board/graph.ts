@@ -1,10 +1,19 @@
 import type { CellId } from "../ids.js";
 import { issue, throwIfErrors, type ValidationIssue } from "../validation.js";
+import { findDirectedCycle } from "./cycles.js";
+import {
+  edgeAllowsMatch,
+  edgeAllowsSwap,
+  resolveTraversal,
+  reverseDirection,
+} from "./direction.js";
 import type {
   Board,
   BoardDefinition,
   BoardTopology,
   CellDefinition,
+  DirectedEntry,
+  FlowKind,
   MovementRules,
   Occupant,
   RuntimeCell,
@@ -49,8 +58,7 @@ export function buildTopology(definition: BoardDefinition): BoardTopology {
   const addDirected = (
     from: CellId,
     to: CellId,
-    direction: string | undefined,
-    kind: "adjacent" | "portal" | "bridge",
+    entry: Omit<DirectedEntry, "to">,
     path: string,
   ): void => {
     if (!cells[from]) {
@@ -62,30 +70,57 @@ export function buildTopology(definition: BoardDefinition): BoardTopology {
       return;
     }
     if (from === to) {
-      issues.push(issue("edge.self", path, "A cell cannot be adjacent to itself."));
+      issues.push(issue("edge.self", path, `A cell cannot be adjacent to itself ("${from}").`));
       return;
     }
     uniquePush(adjacency[from] ?? (adjacency[from] = []), to);
-    (directed[from] ?? (directed[from] = [])).push({
-      to,
-      direction,
-      kind,
-    });
+    const list = directed[from] ?? (directed[from] = []);
+    if (!list.some((existing) => existing.to === to && existing.kind === entry.kind)) {
+      list.push({ ...entry, to });
+    }
   };
 
   for (const [index, edge] of definition.adjacency.entries()) {
     const path = `board.adjacency[${index}]`;
     const kind = edge.kind ?? "adjacent";
-    const bidirectional = edge.bidirectional ?? true;
-    addDirected(edge.from, edge.to, edge.direction, kind, path);
-    if (bidirectional) {
-      const reverse = edge.direction ? reverseDirection(edge.direction) : undefined;
-      addDirected(edge.to, edge.from, reverse, kind, path);
+    const traversal = resolveTraversal(edge);
+    const allowsMatch = edgeAllowsMatch(edge);
+    const allowsSwap = edgeAllowsSwap(edge);
+    addDirected(
+      edge.from,
+      edge.to,
+      {
+        direction: edge.direction,
+        orientation: edge.orientation,
+        label: edge.label,
+        kind,
+        allowsMatch,
+        allowsSwap,
+        authoredForward: true,
+      },
+      path,
+    );
+    if (traversal === "both") {
+      addDirected(
+        edge.to,
+        edge.from,
+        {
+          direction: edge.direction ? reverseDirection(edge.direction) : undefined,
+          orientation: edge.orientation,
+          label: edge.label,
+          kind,
+          allowsMatch,
+          allowsSwap,
+          authoredForward: false,
+        },
+        path,
+      );
     }
   }
 
   const flowDown: Record<CellId, CellId[]> = {};
   const flowUp: Record<CellId, CellId[]> = {};
+  const flowMeta: BoardTopology["flowMeta"] = {};
   for (const id of cellIds) {
     flowDown[id] = [];
     flowUp[id] = [];
@@ -93,27 +128,38 @@ export function buildTopology(definition: BoardDefinition): BoardTopology {
 
   for (const [index, edge] of (definition.flow ?? []).entries()) {
     const path = `board.flow[${index}]`;
-    if (!cells[edge.from] || !cells[edge.to]) {
+    const missing = !cells[edge.from] ? edge.from : !cells[edge.to] ? edge.to : null;
+    if (missing) {
       issues.push(
         issue(
           "flow.unknown_cell",
           path,
-          `Flow edge references unknown cell "${edge.from}" -> "${edge.to}".`,
+          `flow edge "${edge.from} → ${edge.to}" references missing cell "${missing}".`,
         ),
+      );
+      continue;
+    }
+    if (edge.from === edge.to) {
+      issues.push(
+        issue("flow.self", path, `flow edge "${edge.from} → ${edge.to}" targets its own cell.`),
       );
       continue;
     }
     uniquePush(flowDown[edge.from] ?? (flowDown[edge.from] = []), edge.to);
     uniquePush(flowUp[edge.to] ?? (flowUp[edge.to] = []), edge.from);
+    flowMeta[`${edge.from}→${edge.to}`] = {
+      kind: (edge.kind ?? "gravity") as FlowKind,
+      label: edge.label,
+    };
   }
 
-  const flowCycle = findCycle(flowDown);
+  const flowCycle = findDirectedCycle(flowDown);
   if (flowCycle) {
     issues.push(
       issue(
         "flow.cycle",
         "board.flow",
-        `Flow graph must be a DAG so cascade settling terminates. Cycle: ${flowCycle.join(" -> ")}.`,
+        `flow graph contains a cycle: ${flowCycle.join(" → ")}. Cascades would not terminate.`,
       ),
     );
   }
@@ -121,9 +167,14 @@ export function buildTopology(definition: BoardDefinition): BoardTopology {
   const portals = definition.portals ?? [];
   for (const [index, portal] of portals.entries()) {
     const path = `board.portals[${index}]`;
-    if (!cells[portal.from] || !cells[portal.to]) {
+    const missing = !cells[portal.from] ? portal.from : !cells[portal.to] ? portal.to : null;
+    if (missing) {
       issues.push(
-        issue("portal.unknown_cell", path, `Portal references unknown cell "${portal.from}" / "${portal.to}".`),
+        issue(
+          "portal.unknown_cell",
+          path,
+          `portal "${portal.id}" (${portal.from} → ${portal.to}) references missing cell "${missing}".`,
+        ),
       );
     }
   }
@@ -138,7 +189,7 @@ export function buildTopology(definition: BoardDefinition): BoardTopology {
     }
   }
 
-  throwIfErrors(issues, "Invalid board topology");
+  throwIfErrors(issues, "BoardValidationError");
 
   const movement = definition.movement ?? defaultMovementRules();
   const spawnSources =
@@ -152,6 +203,7 @@ export function buildTopology(definition: BoardDefinition): BoardTopology {
     directed,
     flowDown,
     flowUp,
+    flowMeta,
     portals,
     sections,
     topology: definition.topology,
@@ -194,7 +246,7 @@ export function createBoard(definition: BoardDefinition, occupants?: Record<Cell
       : createEmptyOccupant());
     cells[id] = createRuntimeCell(def, occupant);
   }
-  return { topology, cells };
+  return { topology, cells, rotation: {} };
 }
 
 export function cloneBoard(board: Board): Board {
@@ -210,20 +262,27 @@ export function getCell(board: Board, id: CellId): RuntimeCell {
 }
 
 export function neighbors(board: Board, id: CellId, options?: { includePortals?: boolean }): CellId[] {
-  const base = board.topology.adjacency[id] ?? [];
-  if (!options?.includePortals && !board.topology.portalsConductMatches) {
-    return base.filter((other) => {
-      const link = board.topology.directed[id]?.find((edge) => edge.to === other);
-      return link?.kind !== "portal";
-    });
-  }
-  return [...base];
+  const directed = board.topology.directed[id] ?? [];
+  return directed
+    .filter((edge) => {
+      if (!edge.allowsMatch) {
+        return false;
+      }
+      if (edge.kind === "portal" && !options?.includePortals && !board.topology.portalsConductMatches) {
+        return false;
+      }
+      return true;
+    })
+    .map((edge) => edge.to);
 }
 
 export function areAdjacent(board: Board, a: CellId, b: CellId, options?: { forSwap?: boolean }): boolean {
   const directed = board.topology.directed[a] ?? [];
   return directed.some((edge) => {
     if (edge.to !== b) {
+      return false;
+    }
+    if (options?.forSwap ? !edge.allowsSwap : !edge.allowsMatch) {
       return false;
     }
     if (edge.kind === "portal") {
@@ -239,60 +298,4 @@ export function activeCellIds(board: Board): CellId[] {
 
 export function setOccupant(board: Board, id: CellId, occupant: Occupant): void {
   getCell(board, id).occupant = occupant;
-}
-
-function reverseDirection(direction: string): string {
-  const table: Record<string, string> = {
-    n: "s",
-    s: "n",
-    e: "w",
-    w: "e",
-    ne: "sw",
-    sw: "ne",
-    nw: "se",
-    se: "nw",
-    up: "down",
-    down: "up",
-    cw: "ccw",
-    ccw: "cw",
-    in: "out",
-    out: "in",
-  };
-  return table[direction] ?? `rev:${direction}`;
-}
-
-function findCycle(graph: Record<CellId, CellId[]>): CellId[] | null {
-  const visiting = new Set<CellId>();
-  const visited = new Set<CellId>();
-  const stack: CellId[] = [];
-
-  const dfs = (node: CellId): CellId[] | null => {
-    if (visiting.has(node)) {
-      const start = stack.indexOf(node);
-      return [...stack.slice(start), node];
-    }
-    if (visited.has(node)) {
-      return null;
-    }
-    visiting.add(node);
-    stack.push(node);
-    for (const next of graph[node] ?? []) {
-      const cycle = dfs(next);
-      if (cycle) {
-        return cycle;
-      }
-    }
-    stack.pop();
-    visiting.delete(node);
-    visited.add(node);
-    return null;
-  };
-
-  for (const node of Object.keys(graph)) {
-    const cycle = dfs(node);
-    if (cycle) {
-      return cycle;
-    }
-  }
-  return null;
 }

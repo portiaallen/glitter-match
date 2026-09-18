@@ -1,5 +1,5 @@
-import { buildTopology } from "../board/graph.js";
 import type { BoardDefinition } from "../board/types.js";
+import { validateBoardDefinition } from "../board/validate.js";
 import { validateReward } from "../economy/rewards.js";
 import type { IconRegistry } from "../icons/index.js";
 import type { LandRegistry } from "../lands/index.js";
@@ -41,22 +41,15 @@ export function validateLevel(level: LevelDefinition, ctx: LevelValidationContex
     );
   }
 
-  try {
-    buildTopology(toBoardDefinition(level));
-  } catch (error) {
-    issues.push(issue("level.board", "board", error instanceof Error ? error.message : String(error)));
-  }
-
-  issues.push(...validateConnectivity(level));
+  issues.push(...validateBoardDefinition(toBoardDefinition(level)).map((item) => ({
+    ...item,
+    path: item.path.startsWith("board.") ? item.path : `board.${item.path}`,
+  })));
   issues.push(...validateIcons(level, ctx, profile));
   issues.push(...validateObjective(level.objective, "objective", level));
   issues.push(...validateObstacles(level, ctx));
   issues.push(...validateMechanics(level, ctx));
   issues.push(...validateRewards(level));
-
-  if (level.board.movement?.mode === "along-flow" && (level.board.flow ?? []).length === 0) {
-    issues.push(issue("level.flow_missing", "board.flow", "Movement mode along-flow requires flow edges."));
-  }
 
   return issues;
 }
@@ -73,97 +66,6 @@ export function toBoardDefinition(level: LevelDefinition): BoardDefinition {
     portalsConductMatches: level.board.portalsConductMatches,
     portalsAllowSwap: level.board.portalsAllowSwap,
   };
-}
-
-function validateConnectivity(level: LevelDefinition): ValidationIssue[] {
-  const issues: ValidationIssue[] = [];
-  const ids = new Set(level.board.cells.map((cell) => cell.id));
-  const adjacency = new Map<string, Set<string>>();
-  for (const id of ids) {
-    adjacency.set(id, new Set());
-  }
-  for (const edge of level.board.adjacency) {
-    adjacency.get(edge.from)?.add(edge.to);
-    if (edge.bidirectional ?? true) {
-      adjacency.get(edge.to)?.add(edge.from);
-    }
-  }
-
-  for (const portal of level.board.portals ?? []) {
-    if (level.board.portalsConductMatches || portal.conductsMatches) {
-      adjacency.get(portal.from)?.add(portal.to);
-      if (portal.bidirectional ?? true) {
-        adjacency.get(portal.to)?.add(portal.from);
-      }
-    }
-  }
-
-  const start = level.board.cells[0]?.id;
-  if (!start) {
-    issues.push(issue("level.no_cells", "board.cells", "Board has no cells."));
-    return issues;
-  }
-
-  const seen = new Set<string>();
-  const stack = [start];
-  while (stack.length > 0) {
-    const current = stack.pop()!;
-    if (seen.has(current)) {
-      continue;
-    }
-    seen.add(current);
-    for (const next of adjacency.get(current) ?? []) {
-      if (ids.has(next)) {
-        stack.push(next);
-      }
-    }
-  }
-
-  const disconnected = [...ids].filter((id) => !seen.has(id));
-  const kind = level.board.topology.kind;
-  const expectsPossiblyDisconnected = kind === "portal-connected" || kind === "multi-chamber" || kind === "twin-path";
-  if (disconnected.length > 0 && !expectsPossiblyDisconnected && (level.board.portals ?? []).length === 0) {
-    issues.push(
-      issue(
-        "level.disconnected",
-        "board.adjacency",
-        `Cells are not connected: ${disconnected.join(", ")}. Use portal-connected topology or add edges/portals.`,
-      ),
-    );
-  }
-
-  if (kind === "circular") {
-    const hasCycle = [...ids].some((id) => hasUndirectedCycle(id, adjacency));
-    if (!hasCycle) {
-      issues.push(
-        issue("level.topology_mismatch", "board.topology.kind", "circular topology requires at least one cycle.", "warning"),
-      );
-    }
-  }
-
-  return issues;
-}
-
-function hasUndirectedCycle(start: string, adjacency: Map<string, Set<string>>): boolean {
-  const seen = new Set<string>();
-  const stack: Array<{ node: string; parent: string | null }> = [{ node: start, parent: null }];
-  while (stack.length > 0) {
-    const { node, parent } = stack.pop()!;
-    if (seen.has(node)) {
-      continue;
-    }
-    seen.add(node);
-    for (const next of adjacency.get(node) ?? []) {
-      if (next === parent) {
-        continue;
-      }
-      if (seen.has(next)) {
-        return true;
-      }
-      stack.push({ node: next, parent: node });
-    }
-  }
-  return false;
 }
 
 function validateIcons(

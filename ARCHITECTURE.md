@@ -103,3 +103,100 @@ Preferred extension points:
 - Cell `tags`, sections, portals
 
 Avoid: `if (land === "lumina")` inside detect/cascade.
+
+## Board documents vs levels
+
+Levels still require a Land, objectives, and campaign metadata. The Board Laboratory uses `BoardDocument` instead:
+
+- `purpose: "engine-fixture"`
+- no `land`, no rewards, no level numbers
+- `shape` is optional documentation
+- `connections` is the designer-facing alias for adjacency
+- `chambers` compile into sections
+- portals listed once are merged into the graph as `kind: "portal"` edges
+
+Pipeline: **Board Definition → Graph → Generic Engine**. Named silhouettes (heart, spiral, …) are fixtures, not code paths.
+
+## Serialization
+
+`serializeBoardDefinition` writes canonical JSON (sorted cells/edges). Deserialize through the Zod board schema. Round-trip must preserve ids, positions, adjacency, topology metadata, terrain, blockers, portals, and movement.
+
+## Validation
+
+## Why Glitter Match Does Not Use a Grid Engine
+
+Visual positions are presentation and authoring information. Graph connectivity is gameplay truth.
+
+A rectangular matrix would encode “neighbor” as x±1 / y±1. Heart clefts, rings, portals, chambers, and authored one-way paths are then special cases, holes, or second engines. Glitter Match has one engine: cells and authored edges. Moving a cell on screen never creates or destroys a match relationship. Only an explicit connection, flow edge, or portal does.
+
+Coordinates remain useful for layout, the Board Lab, snapping while editing, and debug labels. Matching, swapping, cascade settlement, rotation, and solvability search never derive legality from them.
+
+## Directional edges
+
+Edges may author `direction`, `orientation`, `label`, `traversal` (`both` | `forward`), `allowsMatch`, and `allowsSwap`. `bidirectional: false` is the legacy spelling of forward-only traversal.
+
+Direction labels are designer vocabulary (`n`, `cw`, `along`, …). They are never inferred from screen axes. Aligned / L / T / cross detection walks those labels. Cluster matching walks connectivity and ignores labels.
+
+## Flow model
+
+`flow` edges are a DAG of where a piece may move after a match. Branching, bottlenecks, chambers, and future portal/teleport flow are all authored `from → to` links with an optional `kind` (`gravity` | `branch` | `portal` | `teleport`). Visual “down” is presentation only. The engine never assumes `y + 1 = gravity`. Cycles and missing cell references fail validation loudly and are not repaired.
+
+## Rotation abstraction
+
+Rotation is a graph transformation of a section, not a bitmap spin.
+
+- Cell ids (sockets), terrain, portals, and adjacency stay put.
+- Occupants, movable flags, and obstacles advance along authored `occupantCycles`.
+- Optional `remapDirections` remaps direction labels with an authored map (default 90° compass vocabulary).
+- `board.rotation[sectionId] = { steps, visualAngle }` is logical state. Animation is a future presentation concern.
+
+Boundary: the engine will not invent a cycle from a bounding box or screen-space angle. Lands that want a spinner author the cycles.
+
+## Authoring helper
+
+`GraphAuthoringSession` (`src/lab/authoring.ts`) plus Board Lab **Graph authoring** mode. Designers add/move/rename/delete cells, author edges/flow/portals, import/export JSON, and see validation. Nearby-connect is an explicit optional command that writes real edges. Snap is a visual placement aid.
+
+## Solvability search
+
+`searchSolvability` enumerates legal moves, simulates swap + cascade, evaluates an objective callback, and runs bounded BFS (`maxDepth`, `maxNodes`). Statuses are exactly:
+
+- `SOLVED`
+- `NOT_FOUND_WITHIN_SEARCH_LIMIT`
+- `INVALID_BOARD_RULE_DEFINITION`
+
+A truncated or exhausted search is not a proof of unsolvability. `estimateSolvability` remains a lighter swap-only helper.
+
+## Deterministic replay
+
+A `ReplayTape` stores seed, board definition, initial occupants, and events (player-move, match-detection, cascade, board-movement, rng-decision, rotation, objective). Replaying seed + moves recomputes logic. This is an engine/debug hook, not an online replay service.
+
+## Validation philosophy
+
+Malformed authoring fails loudly. Errors name the cell, edge, and property when possible:
+
+`BoardValidationError: flow edge "cell_14 → cell_22" references missing cell "cell_22".`
+
+The engine does not silently repair duplicate ids, self-edges, bad types, flow cycles, illegal rotation cycles, duplicate portals, or unknown icon references.
+
+## Accessibility principles
+
+Board Lab controls use large hit targets, high-contrast text, focus rings, keyboard activation, and pattern+letter icon marks. Graph relationships use stroke style, markers, and labels — not color alone. Reduced motion is optional. Authoring tools are radio groups, not drag-only gestures.
+
+## Architecture boundaries
+
+| System | Responsibility |
+|---|---|
+| Board Graph | What exists and what connects |
+| Match Engine | What constitutes a match |
+| Cascade Engine | What happens after a match |
+| Flow Engine | How pieces move through the graph |
+| Rotation Engine | How graph regions transform |
+| Objective System | What the player must accomplish |
+| Obstacle System | What blocks or modifies interaction |
+| Land Mechanic Registry | How future Land mechanics plug in |
+| Level Definition | Data describing a puzzle |
+| Presentation | Animation, sound, camera |
+
+No gameplay-critical behavior depends on UI animation.
+
+

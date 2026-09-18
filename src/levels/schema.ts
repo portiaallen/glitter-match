@@ -1,115 +1,18 @@
 import { z } from "zod";
 import { LAND_IDS } from "../ids.js";
-import { TOPOLOGY_KINDS } from "../board/topology.js";
-import { MATCH_MODES } from "../matching/types.js";
 import { OBJECTIVE_TYPES } from "../objectives/model.js";
 import { REWARD_KINDS } from "../economy/rewards.js";
-
-const positionSchema = z
-  .object({
-    x: z.number(),
-    y: z.number(),
-    z: z.number().optional(),
-  })
-  .strict();
-
-const obstaclePlacementSchema = z
-  .object({
-    type: z.string().min(1),
-    durability: z.number().int().positive().optional(),
-    config: z.record(z.unknown()).optional(),
-  })
-  .strict();
-
-const cellSchema = z
-  .object({
-    id: z.string().min(1),
-    position: positionSchema,
-    active: z.boolean().optional(),
-    terrain: z.string().optional(),
-    hidden: z.boolean().optional(),
-    protected: z.boolean().optional(),
-    frozen: z.boolean().optional(),
-    tags: z.array(z.string()).optional(),
-    sectionId: z.string().optional(),
-    initialIcon: z.string().optional(),
-    initialObstacles: z.array(obstaclePlacementSchema).optional(),
-  })
-  .strict();
-
-const edgeSchema = z
-  .object({
-    from: z.string().min(1),
-    to: z.string().min(1),
-    direction: z.string().optional(),
-    bidirectional: z.boolean().optional(),
-    kind: z.enum(["adjacent", "portal", "bridge"]).optional(),
-  })
-  .strict();
-
-const flowSchema = z
-  .object({
-    from: z.string().min(1),
-    to: z.string().min(1),
-  })
-  .strict();
-
-const portalSchema = z
-  .object({
-    id: z.string().min(1),
-    from: z.string().min(1),
-    to: z.string().min(1),
-    bidirectional: z.boolean().optional(),
-    conductsMatches: z.boolean().optional(),
-    allowsSwap: z.boolean().optional(),
-  })
-  .strict();
-
-const sectionSchema = z
-  .object({
-    id: z.string().min(1),
-    cellIds: z.array(z.string().min(1)).min(1),
-    rotation: z
-      .object({
-        incrementDegrees: z.number(),
-        rotatable: z.boolean(),
-      })
-      .strict()
-      .optional(),
-    chamber: z.string().optional(),
-    layer: z.string().optional(),
-  })
-  .strict();
-
-const topologySchema = z
-  .object({
-    kind: z.enum(TOPOLOGY_KINDS),
-    notes: z.string().optional(),
-    chambers: z.array(z.string()).optional(),
-    layers: z.array(z.string()).optional(),
-  })
-  .strict();
-
-const movementSchema = z
-  .object({
-    mode: z.enum(["none", "along-flow"]),
-    refill: z
-      .object({
-        mode: z.enum(["none", "spawn-at-sources"]),
-        sourceCellIds: z.array(z.string()).optional(),
-        avoidImmediateMatches: z.boolean().optional(),
-        maxAvoidAttempts: z.number().int().positive().optional(),
-      })
-      .strict(),
-  })
-  .strict();
-
-const matchRulesSchema = z
-  .object({
-    minGroupSize: z.number().int().min(2),
-    modes: z.array(z.enum(MATCH_MODES)).min(1),
-  })
-  .strict();
+import {
+  cellSchema,
+  edgeSchema,
+  flowSchema,
+  matchRulesSchema,
+  movementSchema,
+  obstaclePlacementSchema,
+  portalSchema,
+  sectionSchema,
+  topologySchema,
+} from "../board/schema.js";
 
 const objectiveSchema: z.ZodTypeAny = z.lazy(() =>
   z
