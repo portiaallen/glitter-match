@@ -28,3 +28,4 @@ export * from "./twists/contract.js";
 export * from "./secrets/contract.js";
 export * from "./gates/contract.js";
 export * from "./universe/references.js";
+export * from "./primitives/index.js";
