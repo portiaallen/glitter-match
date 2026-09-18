@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Glitter Match — Board Laboratory</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <a class="skip" href="#board">Skip to board</a>
+    <header class="top">
+      <div>
+        <p class="kicker">Development only · engine fixtures · not campaign content</p>
+        <h1>Board Laboratory</h1>
+      </div>
+      <label class="seed">
+        Seed
+        <input id="seed" type="text" value="lab-seed" autocomplete="off" />
+      </label>
+      <fieldset class="mode-switch">
+        <legend>Mode</legend>
+        <label><input type="radio" name="lab-mode" id="mode-play" value="play" checked /> Play / inspect</label>
+        <label><input type="radio" name="lab-mode" id="mode-author" value="author" /> Graph authoring</label>
+      </fieldset>
+      <button type="button" id="reseed">Reseed / reload</button>
+    </header>
+    <div class="layout">
+      <nav class="rail" aria-label="Test topologies">
+        <h2>Fixtures</h2>
+        <p class="hint">Same matcher. Different graphs.</p>
+        <ul id="fixture-list"></ul>
+        <h2>Special Match fixtures</h2>
+        <p class="hint">Engine tests only. Not campaign content. Not inventory Special Icons.</p>
+        <ul id="special-fixture-list"></ul>
+        <h2>Objective fixtures</h2>
+        <p class="hint">Engine tests only. Not campaign levels.</p>
+        <ul id="objective-fixture-list"></ul>
+      </nav>
+      <main id="board" class="stage">
+        <svg id="canvas" role="img" aria-label="Board topology visualization"></svg>
+        <p id="status" class="status" role="status"></p>
+      </main>
+      <aside class="panel" aria-label="Debug overlays">
+        <h2>Visualizer</h2>
+        <fieldset>
+          <legend>Layers</legend>
+          <label><input type="checkbox" id="layer-ids" checked /> Cell IDs</label>
+          <label><input type="checkbox" id="layer-bounds" checked /> Cell boundaries</label>
+          <label><input type="checkbox" id="layer-edges" checked /> Adjacency</label>
+          <label><input type="checkbox" id="layer-portals" checked /> Portals / bridges</label>
+          <label><input type="checkbox" id="layer-coords" /> Coordinates</label>
+          <label><input type="checkbox" id="layer-matches" checked /> Matches</label>
+          <label><input type="checkbox" id="layer-moves" checked /> Legal moves</label>
+          <label><input type="checkbox" id="layer-flow" /> Flow arrows</label>
+          <label><input type="checkbox" id="layer-direction" checked /> Direction labels</label>
+        </fieldset>
+        <fieldset>
+          <legend>Accessibility</legend>
+          <label><input type="checkbox" id="reduced-motion" /> Reduced motion</label>
+          <p class="hint">Icons use letter + pattern, not color alone.</p>
+        </fieldset>
+        <section>
+          <h3>Why interact?</h3>
+          <p class="hint">Click two cells. Graph edges decide, not x±1 / y±1.</p>
+          <pre id="why"></pre>
+        </section>
+        <section>
+          <h3>Matches</h3>
+          <pre id="matches"></pre>
+        </section>
+        <section>
+          <h3>Legal moves</h3>
+          <pre id="moves"></pre>
+        </section>
+        <section>
+          <h3>Cascade</h3>
+          <pre id="cascade"></pre>
+        </section>
+        <section>
+          <h3>Objective</h3>
+          <pre id="objective"></pre>
+        </section>
+        <section id="primitive-panel">
+          <h3>Mechanic primitives</h3>
+          <p class="hint">Development inspect only. These are reusable engine blocks, not Land mechanics or campaign content.</p>
+          <label class="field">Recipe
+            <select id="primitive-recipe" aria-label="Primitive recipe">
+              <option value="disable-selected-edge">Disable selected edge</option>
+              <option value="lock-selected-cell">Lock selected cell</option>
+              <option value="swap-selected">Swap selected occupants</option>
+              <option value="pair-selected">Pair selected cells</option>
+              <option value="region-from-selected">Region from selected cell</option>
+              <option value="path-between-selected">Path between selected cells</option>
+              <option value="tick-threshold">Advance demo threshold</option>
+            </select>
+          </label>
+          <div class="actions">
+            <button type="button" id="run-primitive">Trigger primitive</button>
+          </div>
+          <pre id="primitive-out" role="status"></pre>
+        </section>
+        <section id="special-panel">
+          <h3>Special Matches</h3>
+          <p class="hint">Board Special Matches created by matching. Not Glitter Bomb / Hammer / Prism / Wild Card / Magic Swap / Lightning.</p>
+          <div class="actions">
+            <button type="button" id="special-inspect">Inspect candidates</button>
+            <button type="button" id="special-activate">Activate selected / first armed</button>
+            <button type="button" id="special-serialize">Serialize state</button>
+            <button type="button" id="special-replay">Replay tape</button>
+          </div>
+          <pre id="special-out" role="status"></pre>
+        </section>
+        <section id="objective-panel">
+          <h3>Objectives</h3>
+          <p class="hint">Engine inspect only. Win state is not mastery and does not grant currency.</p>
+          <div class="actions">
+            <button type="button" id="objective-inspect">Inspect objectives</button>
+            <button type="button" id="objective-serialize">Serialize objective state</button>
+          </div>
+          <pre id="objective-engine-out" role="status"></pre>
+        </section>
+        <section id="progression-panel">
+          <h3>Progression</h3>
+          <p class="hint">Engine inspect only. Development universe fixture — not a campaign, not Level 1, not rewards or story.</p>
+          <label class="field">Fixture node
+            <select id="progression-node" aria-label="Progression fixture node"></select>
+          </label>
+          <div class="actions">
+            <button type="button" id="progression-inspect">Inspect progression</button>
+            <button type="button" id="progression-complete">Simulate complete</button>
+            <button type="button" id="progression-fail">Simulate fail</button>
+            <button type="button" id="progression-master">Simulate mastery</button>
+            <button type="button" id="progression-serialize">Serialize / restore</button>
+          </div>
+          <pre id="progression-out" role="status"></pre>
+        </section>
+        <section id="runtime-panel">
+          <h3>Level Runtime</h3>
+          <p class="hint">Developer harness only. Loads the current engine fixture into LevelRuntime. Not a production level, not campaign content.</p>
+          <div class="actions">
+            <button type="button" id="runtime-load">Load runtime</button>
+            <button type="button" id="runtime-move">Submit selected move</button>
+            <button type="button" id="runtime-inspect">Inspect runtime</button>
+            <button type="button" id="runtime-snapshot">Snapshot</button>
+            <button type="button" id="runtime-restore">Restore</button>
+            <button type="button" id="runtime-replay">Replay tape</button>
+          </div>
+          <pre id="runtime-out" role="status"></pre>
+        </section>
+        <div class="actions">
+          <button type="button" id="resolve">Resolve matches</button>
+          <button type="button" id="recover">Recover dead board</button>
+        </div>
+        <section id="author-panel" hidden>
+          <h3>Graph Authoring Helper</h3>
+          <p class="hint">This edits an explicit graph. Nearby cells stay disconnected until you author an edge.</p>
+          <fieldset>
+            <legend>Tool</legend>
+            <label><input type="radio" name="author-tool" value="select" checked /> Select / move</label>
+            <label><input type="radio" name="author-tool" value="add" /> Add cell</label>
+            <label><input type="radio" name="author-tool" value="connect" /> Connect (edge)</label>
+            <label><input type="radio" name="author-tool" value="flow" /> Flow edge</label>
+            <label><input type="radio" name="author-tool" value="portal" /> Portal</label>
+            <label><input type="radio" name="author-tool" value="delete" /> Delete cell</label>
+          </fieldset>
+          <label class="field">Selected cell id
+            <input id="cell-id" type="text" autocomplete="off" aria-label="Edit selected cell id" />
+          </label>
+          <label class="field">Edge direction
+            <input id="edge-direction" type="text" placeholder="e.g. along, n, cw" autocomplete="off" />
+          </label>
+          <label class="field">Traversal
+            <select id="edge-traversal">
+              <option value="both">both</option>
+              <option value="forward">forward</option>
+            </select>
+          </label>
+          <label><input type="checkbox" id="snap" /> Snap placement (visual aid only)</label>
+          <div class="actions">
+            <button type="button" id="connect-nearby">Connect nearby (optional)</button>
+            <button type="button" id="export-board">Export JSON</button>
+            <button type="button" id="import-board">Import JSON</button>
+            <button type="button" id="apply-author">Play this graph</button>
+          </div>
+          <label class="field">Board JSON
+            <textarea id="board-json" spellcheck="false" aria-label="Board definition JSON"></textarea>
+          </label>
+          <h3>Validation</h3>
+          <pre id="author-errors" role="status"></pre>
+        </section>
+        <p id="notes" class="notes"></p>
+      </aside>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

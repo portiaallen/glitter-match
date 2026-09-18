@@ -1,27 +1,7 @@
 import { LAND_IDS, type LandId } from "../ids.js";
 import { issue, type ValidationIssue } from "../validation.js";
-
-export interface LandDefinition {
-  id: LandId;
-  displayName: string;
-  /** Slots for future content. Empty on purpose in this foundation phase. */
-  visualIdentity?: string;
-  boardLanguage?: string;
-  movementLanguage?: string;
-  audioIdentity?: string;
-  narrativeIdentity?: string;
-}
-
-export const LAND_CATALOG: readonly LandDefinition[] = [
-  { id: "lumina", displayName: "Lumina" },
-  { id: "glimmer", displayName: "Glimmer" },
-  { id: "bloomara", displayName: "Bloomara" },
-  { id: "transcendia", displayName: "Transcendia" },
-  { id: "quintara", displayName: "Quintara" },
-  { id: "iridescia", displayName: "Iridescia" },
-  { id: "aurelia", displayName: "Aurelia" },
-  { id: "infinity-isles", displayName: "Infinity Isles" },
-] as const;
+import { LAND_CATALOG } from "./catalog.js";
+import type { LandDefinition } from "./dna.js";
 
 export class LandRegistry {
   private readonly lands = new Map<LandId, LandDefinition>();
@@ -64,14 +44,28 @@ export class LandRegistry {
         ),
       );
     }
+    for (const land of this.lands.values()) {
+      if (!land.philosophicalQuestion) {
+        issues.push(issue("land.question_missing", `lands.${land.id}`, `Land "${land.id}" must declare its question.`));
+      }
+      if (!land.iconFamilyId) {
+        issues.push(issue("land.family_missing", `lands.${land.id}`, `Land "${land.id}" must reference an icon family.`));
+      }
+      if (land.slug && land.slug !== land.id) {
+        issues.push(issue("land.slug_mismatch", `lands.${land.id}.slug`, `Land slug must equal id.`));
+      }
+    }
     return issues;
   }
 }
 
-export function createLandRegistry(): LandRegistry {
-  return new LandRegistry();
+export function createLandRegistry(definitions: readonly LandDefinition[] = LAND_CATALOG): LandRegistry {
+  return new LandRegistry(definitions);
 }
 
 export function isLandId(value: string): value is LandId {
   return (LAND_IDS as readonly string[]).includes(value);
 }
+
+export { LAND_CATALOG } from "./catalog.js";
+export type { LandDefinition } from "./dna.js";

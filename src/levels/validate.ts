@@ -1,14 +1,22 @@
-import { buildTopology } from "../board/graph.js";
 import type { BoardDefinition } from "../board/types.js";
+import { validateBoardDefinition } from "../board/validate.js";
+import { validateIconLaw } from "../content/icon-law.js";
+import { SCHEMA_VERSION, versionsCompatible } from "../content/versions.js";
+import { DIFFICULTY_DIMENSIONS, vectorFromRating } from "../difficulty/model.js";
 import { validateReward } from "../economy/rewards.js";
 import type { IconRegistry } from "../icons/index.js";
 import type { LandRegistry } from "../lands/index.js";
-import type { MechanicRegistry } from "../mechanics/index.js";
-import { OBJECTIVE_TYPES, type ObjectiveDefinition } from "../objectives/index.js";
+import type { MatchRuleRegistry } from "../matching/contracts.js";
+import { createMatchRuleRegistry } from "../matching/contracts.js";
+import { getDefaultMatchEngine } from "../matching/pipeline.js";
+import { validateLandDna, type MechanicalVerbRegistry } from "../lands/index.js";
+import { normalizeMechanicBindings, validateMechanicComposition, type MechanicRegistry } from "../mechanics/index.js";
+import { OBJECTIVE_TYPES, validateObjectiveForest, type ObjectiveDefinition } from "../objectives/index.js";
+import { createObjectiveRegistry, type ObjectiveRegistry } from "../objectives/registry.js";
 import type { ObstacleRegistry } from "../obstacles/index.js";
 import { isSpecialIconId } from "../special-icons/index.js";
 import { issue, throwIfErrors, type ValidationIssue } from "../validation.js";
-import { parseLevelJson, type LevelDefinition } from "./schema.js";
+import { LEVEL_DNA_REQUIRED_FOR_PRODUCTION, parseLevelJson, type LevelDefinition } from "./schema.js";
 
 export type ValidationProfile = "development" | "production";
 
@@ -17,7 +25,11 @@ export interface LevelValidationContext {
   lands: LandRegistry;
   obstacles: ObstacleRegistry;
   mechanics: MechanicRegistry;
+  matchContracts?: MatchRuleRegistry;
+  objectives?: ObjectiveRegistry;
+  verbs?: MechanicalVerbRegistry;
   profile?: ValidationProfile;
+  sourcePath?: string;
 }
 
 export function loadAndValidateLevel(input: unknown, ctx: LevelValidationContext): LevelDefinition {
@@ -30,6 +42,8 @@ export function loadAndValidateLevel(input: unknown, ctx: LevelValidationContext
 export function validateLevel(level: LevelDefinition, ctx: LevelValidationContext): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const profile = ctx.profile ?? level.status;
+  const matchContracts = ctx.matchContracts ?? createMatchRuleRegistry();
+  const objectives = ctx.objectives ?? createObjectiveRegistry();
 
   if (!ctx.lands.has(level.land)) {
     issues.push(issue("level.unknown_land", "land", `Unknown land "${level.land}".`));
@@ -41,21 +55,51 @@ export function validateLevel(level: LevelDefinition, ctx: LevelValidationContex
     );
   }
 
-  try {
-    buildTopology(toBoardDefinition(level));
-  } catch (error) {
-    issues.push(issue("level.board", "board", error instanceof Error ? error.message : String(error)));
-  }
-
-  issues.push(...validateConnectivity(level));
+  issues.push(...validateDevFixturePolicy(level, profile, ctx.sourcePath));
+  issues.push(...validateBoardDefinition(toBoardDefinition(level)).map((item) => ({
+    ...item,
+    path: item.path.startsWith("board.") ? item.path : `board.${item.path}`,
+  })));
   issues.push(...validateIcons(level, ctx, profile));
-  issues.push(...validateObjective(level.objective, "objective", level));
+  issues.push(...validateObjective(level.objective, "objective", level, objectives));
+  for (const [index, extra] of (level.objectives ?? []).entries()) {
+    issues.push(...validateObjective(extra, `objectives[${index}]`, level, objectives));
+  }
+  issues.push(
+    ...validateObjectiveForest(
+      [level.objective, ...(level.objectives ?? [])],
+      level.winState,
+    ),
+  );
   issues.push(...validateObstacles(level, ctx));
+  if (ctx.verbs) {
+    issues.push(...validateLandDna(ctx.lands, ctx.verbs, ctx.mechanics));
+  }
   issues.push(...validateMechanics(level, ctx));
   issues.push(...validateRewards(level));
+  issues.push(...validateMatchContracts(level, matchContracts));
+  issues.push(...validateMatchEngineRuleIds(level));
+  issues.push(...validateMovementModel(level));
+  issues.push(...validateDifficulty(level, profile));
+  issues.push(...validateRuleOfThree(level, profile));
+  issues.push(...validateSecrets(level));
+  issues.push(...validateAccessibility(level, profile));
+  issues.push(...validateVersions(level, profile));
+  issues.push(...validateMasterySeparation(level));
 
-  if (level.board.movement?.mode === "along-flow" && (level.board.flow ?? []).length === 0) {
-    issues.push(issue("level.flow_missing", "board.flow", "Movement mode along-flow requires flow edges."));
+  if (profile === "production") {
+    issues.push(...validateIconLaw(ctx.icons, ctx.lands));
+    for (const field of LEVEL_DNA_REQUIRED_FOR_PRODUCTION) {
+      if (level[field] === undefined) {
+        issues.push(
+          issue(
+            "dna.missing_field",
+            field,
+            `Production Level DNA requires "${field}". 640 campaign levels are future content; this is the contract, not a generated level.`,
+          ),
+        );
+      }
+    }
   }
 
   return issues;
@@ -75,95 +119,36 @@ export function toBoardDefinition(level: LevelDefinition): BoardDefinition {
   };
 }
 
-function validateConnectivity(level: LevelDefinition): ValidationIssue[] {
+export function isLaboratoryFixtureId(id: string): boolean {
+  return id.startsWith("lab.") || id.startsWith("lab/") || id.startsWith("special.") || id.startsWith("objective.") || id.startsWith("progression.") || id.startsWith("dev.level.") || id.startsWith("dev.pack.") || id.startsWith("dev.universe");
+}
+
+function validateDevFixturePolicy(
+  level: LevelDefinition,
+  profile: ValidationProfile,
+  sourcePath?: string,
+): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
-  const ids = new Set(level.board.cells.map((cell) => cell.id));
-  const adjacency = new Map<string, Set<string>>();
-  for (const id of ids) {
-    adjacency.set(id, new Set());
-  }
-  for (const edge of level.board.adjacency) {
-    adjacency.get(edge.from)?.add(edge.to);
-    if (edge.bidirectional ?? true) {
-      adjacency.get(edge.to)?.add(edge.from);
-    }
-  }
-
-  for (const portal of level.board.portals ?? []) {
-    if (level.board.portalsConductMatches || portal.conductsMatches) {
-      adjacency.get(portal.from)?.add(portal.to);
-      if (portal.bidirectional ?? true) {
-        adjacency.get(portal.to)?.add(portal.from);
-      }
-    }
-  }
-
-  const start = level.board.cells[0]?.id;
-  if (!start) {
-    issues.push(issue("level.no_cells", "board.cells", "Board has no cells."));
-    return issues;
-  }
-
-  const seen = new Set<string>();
-  const stack = [start];
-  while (stack.length > 0) {
-    const current = stack.pop()!;
-    if (seen.has(current)) {
-      continue;
-    }
-    seen.add(current);
-    for (const next of adjacency.get(current) ?? []) {
-      if (ids.has(next)) {
-        stack.push(next);
-      }
-    }
-  }
-
-  const disconnected = [...ids].filter((id) => !seen.has(id));
-  const kind = level.board.topology.kind;
-  const expectsPossiblyDisconnected = kind === "portal-connected" || kind === "multi-chamber" || kind === "twin-path";
-  if (disconnected.length > 0 && !expectsPossiblyDisconnected && (level.board.portals ?? []).length === 0) {
+  const fromLabPath = Boolean(sourcePath && /(?:^|\/)data\/lab\//.test(sourcePath.replaceAll("\\", "/")));
+  if (profile === "production" && (isLaboratoryFixtureId(level.id) || fromLabPath || level.purpose === "engine-fixture")) {
     issues.push(
       issue(
-        "level.disconnected",
-        "board.adjacency",
-        `Cells are not connected: ${disconnected.join(", ")}. Use portal-connected topology or add edges/portals.`,
+        "content.lab_as_production",
+        "purpose",
+        "Board Laboratory fixtures (data/lab/*) are engine tests only and cannot become production levels.",
       ),
     );
   }
-
-  if (kind === "circular") {
-    const hasCycle = [...ids].some((id) => hasUndirectedCycle(id, adjacency));
-    if (!hasCycle) {
-      issues.push(
-        issue("level.topology_mismatch", "board.topology.kind", "circular topology requires at least one cycle.", "warning"),
-      );
-    }
+  if (level.purpose === "campaign") {
+    issues.push(
+      issue(
+        "content.campaign_forbidden",
+        "purpose",
+        "Campaign / 640-level content is not authored in this architecture phase.",
+      ),
+    );
   }
-
   return issues;
-}
-
-function hasUndirectedCycle(start: string, adjacency: Map<string, Set<string>>): boolean {
-  const seen = new Set<string>();
-  const stack: Array<{ node: string; parent: string | null }> = [{ node: start, parent: null }];
-  while (stack.length > 0) {
-    const { node, parent } = stack.pop()!;
-    if (seen.has(node)) {
-      continue;
-    }
-    seen.add(node);
-    for (const next of adjacency.get(node) ?? []) {
-      if (next === parent) {
-        continue;
-      }
-      if (seen.has(next)) {
-        return true;
-      }
-      stack.push({ node: next, parent: node });
-    }
-  }
-  return false;
 }
 
 function validateIcons(
@@ -208,6 +193,9 @@ function validateIcons(
         ),
       );
     }
+    if (icon.kind === "glitter" && icon.landId !== null) {
+      issues.push(issue("level.glitter_has_land", `icons.${iconId}`, "The Glitter Icon belongs to no Land."));
+    }
   }
 
   if (profile === "production") {
@@ -223,10 +211,17 @@ function validateIcons(
   return issues;
 }
 
-function validateObjective(objective: ObjectiveDefinition, path: string, level: LevelDefinition): ValidationIssue[] {
+function validateObjective(
+  objective: ObjectiveDefinition,
+  path: string,
+  level: LevelDefinition,
+  registry: ObjectiveRegistry,
+): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   if (!OBJECTIVE_TYPES.includes(objective.type)) {
     issues.push(issue("objective.unknown_type", `${path}.type`, `Unknown objective type "${objective.type}".`));
+  } else if (!registry.has(objective.type)) {
+    issues.push(issue("objective.unregistered", `${path}.type`, `Objective type "${objective.type}" is not registered.`));
   }
   const cellIds = new Set(level.board.cells.map((cell) => cell.id));
 
@@ -288,7 +283,7 @@ function validateObjective(objective: ObjectiveDefinition, path: string, level: 
         issues.push(issue("objective.stages_field", path, "multi-stage objectives require stages."));
       }
       for (const [index, stage] of (objective.stages ?? []).entries()) {
-        issues.push(...validateObjective(stage, `${path}.stages[${index}]`, level));
+        issues.push(...validateObjective(stage, `${path}.stages[${index}]`, level, registry));
       }
       break;
     case "hybrid":
@@ -296,7 +291,7 @@ function validateObjective(objective: ObjectiveDefinition, path: string, level: 
         issues.push(issue("objective.children_field", path, "hybrid objectives require children."));
       }
       for (const [index, child] of (objective.children ?? []).entries()) {
-        issues.push(...validateObjective(child, `${path}.children[${index}]`, level));
+        issues.push(...validateObjective(child, `${path}.children[${index}]`, level, registry));
       }
       break;
     default:
@@ -334,14 +329,16 @@ function validateObstacles(level: LevelDefinition, ctx: LevelValidationContext):
 
 function validateMechanics(level: LevelDefinition, ctx: LevelValidationContext): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
-  for (const [index, id] of (level.mechanics ?? []).entries()) {
-    if (!ctx.mechanics.has(id)) {
-      issues.push(issue("mechanic.unknown", `mechanics[${index}]`, `Unknown mechanic "${id}".`));
+  const bindings = normalizeMechanicBindings(level.mechanics);
+  issues.push(...validateMechanicComposition(bindings, ctx.mechanics, level.land));
+  for (const [index, binding] of bindings.entries()) {
+    if (!ctx.mechanics.has(binding.id)) {
       continue;
     }
-    if (!ctx.mechanics.get(id).implemented) {
+    const mechanic = ctx.mechanics.get(binding.id);
+    if (!mechanic.implemented) {
       issues.push(
-        issue("mechanic.unimplemented", `mechanics[${index}]`, `Mechanic "${id}" is not implemented.`),
+        issue("mechanic.unimplemented", `mechanics[${index}]`, `Mechanic "${binding.id}" is not implemented.`),
       );
     }
   }
@@ -357,6 +354,182 @@ function validateRewards(level: LevelDefinition): ValidationIssue[] {
     }
     if (reward.kind === "special-icon" && reward.id && !isSpecialIconId(reward.id)) {
       issues.push(issue("reward.unknown_special", `rewards[${index}]`, `Unknown special icon reward "${reward.id}".`));
+    }
+  }
+  return issues;
+}
+
+function validateMatchEngineRuleIds(level: LevelDefinition): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const engine = getDefaultMatchEngine();
+  for (const [index, id] of (level.matchRules.ruleIds ?? []).entries()) {
+    if (!engine.rules.has(id)) {
+      issues.push(issue("match.unknown_rule", `matchRules.ruleIds[${index}]`, `Unknown match rule "${id}". Register it before referencing it.`));
+    }
+  }
+  return issues;
+}
+
+function validateMatchContracts(level: LevelDefinition, registry: MatchRuleRegistry): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  for (const [index, id] of (level.matchRules.contracts ?? []).entries()) {
+    if (!registry.has(id)) {
+      issues.push(issue("match.unknown_contract", `matchRules.contracts[${index}]`, `Unknown match contract "${id}".`));
+      continue;
+    }
+    const contract = registry.get(id);
+    if (!contract.implemented) {
+      issues.push(
+        issue(
+          "match.unimplemented_contract",
+          `matchRules.contracts[${index}]`,
+          `Match contract "${id}" is reserved. Do not implement Land-specific match logic in the engine core.`,
+        ),
+      );
+    }
+  }
+  return issues;
+}
+
+function validateMovementModel(level: LevelDefinition): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const model = level.movementModel;
+  if (!model) {
+    return issues;
+  }
+  if (model.traversal && model.traversal !== "graph") {
+    issues.push(
+      issue("movement.not_graph", "movementModel.traversal", "Movement must operate on the authored graph. Never infer movement from x/y."),
+    );
+  }
+  return issues;
+}
+
+function validateDifficulty(level: LevelDefinition, profile: ValidationProfile): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  if (!level.difficulty) {
+    return issues;
+  }
+  const vector = vectorFromRating({ authored: {}, ...level.difficulty });
+  for (const dimension of DIFFICULTY_DIMENSIONS) {
+    const value = vector[dimension];
+    if (value === undefined) {
+      if (profile === "production") {
+        issues.push(
+          issue(
+            "difficulty.missing_dimension",
+            `difficulty.${dimension}`,
+            `Production difficulty must author "${dimension}" on the 0–10 scale. Difficulty is multidimensional, not easy/medium/hard.`,
+          ),
+        );
+      }
+      continue;
+    }
+    if (value < 0 || value > 10) {
+      issues.push(issue("difficulty.out_of_range", `difficulty.${dimension}`, `"${dimension}" must be between 0 and 10.`));
+    }
+  }
+  return issues;
+}
+
+function validateRuleOfThree(level: LevelDefinition, profile: ValidationProfile): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  if (profile === "production" && !level.ruleOfThree) {
+    issues.push(
+      issue("rule_of_three.missing", "ruleOfThree", "Production Level DNA requires Familiar + New + Surprising metadata."),
+    );
+  }
+  if (level.ruleOfThree) {
+    if (level.ruleOfThree.familiar.length < 1 || level.ruleOfThree.new.length < 1 || level.ruleOfThree.surprising.length < 1) {
+      issues.push(issue("rule_of_three.incomplete", "ruleOfThree", "Rule of Three requires familiar, new, and surprising entries."));
+    }
+  }
+  return issues;
+}
+
+function validateSecrets(level: LevelDefinition): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const secret = level.secret;
+  if (secret?.requiredForCompletion) {
+    const hasDiscoveryObjective =
+      level.objective.type === "discovery" ||
+      (level.objectives ?? []).some((item) => item.type === "discovery");
+    if (!hasDiscoveryObjective) {
+      issues.push(
+        issue(
+          "secret.required_without_objective",
+          "secret.requiredForCompletion",
+          "A secret must never be required to complete the core level unless it is also authored as an objective.",
+        ),
+      );
+    }
+  }
+  for (const [index, discovery] of (level.discoveries ?? []).entries()) {
+    if (discovery.requiredForCompletion && discovery.kind !== "discovery-moment") {
+      issues.push(
+        issue(
+          "discovery.required",
+          `discoveries[${index}]`,
+          "Optional discoveries cannot be required unless authored as a discovery objective.",
+        ),
+      );
+    }
+  }
+  return issues;
+}
+
+function validateAccessibility(level: LevelDefinition, profile: ValidationProfile): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const access = level.accessibility;
+  if (profile === "production" && !access) {
+    issues.push(issue("a11y.missing", "accessibility", "Production Level DNA requires accessibility metadata."));
+    return issues;
+  }
+  if (!access) {
+    return issues;
+  }
+  if (!access.nonColorOnly) {
+    issues.push(
+      issue(
+        "a11y.color_only",
+        "accessibility.nonColorOnly",
+        "Gameplay-critical information must never rely solely on color.",
+      ),
+    );
+  }
+  if (access.largeTouchTargets && access.minHitTargetPx !== undefined && access.minHitTargetPx < 44) {
+    issues.push(
+      issue("a11y.hit_target", "accessibility.minHitTargetPx", "largeTouchTargets requires minHitTargetPx of at least 44."),
+    );
+  }
+  return issues;
+}
+
+function validateVersions(level: LevelDefinition, profile: ValidationProfile): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  if (level.schemaVersion && !versionsCompatible(level.schemaVersion, SCHEMA_VERSION) && profile === "production") {
+    issues.push(
+      issue(
+        "version.incompatible",
+        "schemaVersion",
+        `Schema version "${level.schemaVersion}" is not compatible with "${SCHEMA_VERSION}".`,
+      ),
+    );
+  }
+  return issues;
+}
+
+function validateMasterySeparation(level: LevelDefinition): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  if (level.mastery && level.objective.type === "precision" && level.mastery.maxMovesUsed && level.objective.moves !== undefined) {
+    if (level.mastery.maxMovesUsed >= level.objective.moves) {
+      issues.push(
+        issue(
+          "mastery.not_stricter",
+          "mastery.maxMovesUsed",
+          "Mastery must be stricter than completion. Completion ≠ Mastery.",
+        ),
+      );
     }
   }
   return issues;

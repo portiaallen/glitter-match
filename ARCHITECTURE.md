@@ -16,29 +16,36 @@ If a later Land wants hex, radial, or organic connectivity, it authors edges. Th
 
 ## Matching is connectivity-first
 
-Default match mode is **cluster**: connected components of compatible icons, size ≥ `minGroupSize`.
+**Matching is graph-authoritative.** Default match mode is **cluster**: connected components of compatible icons, size ≥ `minGroupSize`.
 
-Aligned / L / T / cross modes exist for boards that author **direction labels** on edges. They are optional. Irregular boards are not forced through horizontal/vertical rules.
+Aligned / L / T / cross / path / cycle modes exist for boards that author **direction labels** or opt into topology matchers. They are optional. Irregular boards are not forced through horizontal/vertical rules. Coordinates, rows, columns, and screen distance never decide a match.
 
-**Glitter Icon:** universal wild that may join an ordinary/dev color group. Pure-glitter groups are ignored so we do not invent extra Glitter behavior in this phase.
+See `MATCH_RULES.md` for the Match Rule Registry, pattern framework, overlap policy, and Special Match candidate separation.
 
-**Special Matches** (pattern-created power tiles) are not implemented. They must stay distinct from **Special Icons** (inventory items).
+**Glitter Icon:** universal wild that may join an ordinary/dev color group. Pure-glitter groups are ignored so we do not invent extra Glitter behavior in this phase. Levels cannot invent additional wildcards.
+
+**Special Matches** (pattern-created board occupants) are implemented as a generic engine layer. The Match Engine still emits **candidate metadata only**. The Special Match Engine turns approved candidates into serializable board instances. Candidates stay distinct from **Special Icons** (inventory items). See `SPECIAL_MATCH_ENGINE.md`.
+
+The match pipeline (detect → group → overlap → special-candidate → mark → events) does not mutate the board. Cascade creates instances, activates registered triggers, and reuses the Prompt #6 effect system.
 
 ## Cascade pipeline vs presentation
 
 Logic pipeline, always in this order:
 
 1. Detect matches
-2. Resolve (clear occupants, score, collection stats)
-3. Obstacle effects
-4. Remaining-piece movement (`along-flow` or `none`)
-5. Refill
-6. Repeat until stable
-7. Complete
+2. Identify / conflict-resolve Special Match candidates
+3. Create Special Match instances (creation policy)
+4. Resolve (clear non-preserved occupants, score, collection stats)
+5. Obstacle effects
+6. Remaining-piece movement (`along-flow` or `none`)
+7. Activate triggered Special Matches and apply primitive effect batches
+8. Refill
+9. Repeat until stable or an explicit safety termination
+10. Complete
 
 `CascadeReport.steps` is the animation contract. The UI must not be required to advance game state.
 
-A combo cap (`maxCombos`, default 64) prevents infinite refill loops.
+Safety terminations are explicit: `CASCADE_COMPLETED`, `CASCADE_LIMIT_REACHED`, `CASCADE_STATE_REPEAT`, `CASCADE_INVALID`. Configurable limits are not a solvability proof.
 
 ## Randomness and fairness
 
@@ -59,27 +66,29 @@ Two profiles:
 - `development` — allows `dev.*` fixture icons and `status: "development"` levels.
 - `production` — rejects development icons/levels, requires ordinary icons to belong to the level’s Land.
 
-`data/dev/branching-smoke.json` is the only fixture. It is not a campaign level.
+`data/dev/branching-smoke.json` is the only engine-level fixture. It is not a campaign level.
+
+**640 levels are future content. They are not part of this implementation.** See `CONTENT_ARCHITECTURE.md` for Level DNA and `LAND_DNA.md` for Land mechanical identities. Land DNA describes vocabulary; it does not define individual puzzles.
 
 ## Icon and Land canon
 
-Ordinary match icons belong to exactly one Land. Duplicate ids are rejected at registration. Duplicate display names across Lands fail integrity validation.
+Ordinary match icons belong to exactly one Land. Each of the eight Lands has a registered eight-icon family. Duplicate ids are rejected at registration. Duplicate display names across Lands fail integrity validation. Reassignment requires an explicit content-version change.
 
 The Glitter Icon id is `glitter`, `kind: "glitter"`, `landId: null`.
 
-The eight Lands are fixed in `LAND_IDS`. No additional Lands are allowed. Families are empty until content authoring.
+The eight Lands are fixed in `LAND_IDS` with canonical questions, mechanical verbs, and reserved unimplemented handlers (`land.lumina` … `land.infinity-isles`). No additional Lands are allowed. The engine asks the mechanic registry and collects explicit effects. It must not branch on `land === ...`.
 
-Special Icons are catalogued as universal inventory (`glitter-bomb`, `glitter-hammer`, `prism`, `wild-card`, `magic-swap`, `glitter-lightning`) with `implemented: false`. Using one as a move fails loudly.
+Special Icons are catalogued as universal inventory (`glitter-bomb`, `glitter-hammer`, `prism`, `wild-card`, `magic-swap`, `glitter-lightning`) with `implemented: false`. Using one as a move fails loudly. They are not Special Matches.
 
 ## Objectives and obstacles
 
-Objectives evaluate `GameStats` and board occupancy. They do not read sprites, tweens, or DOM.
+Objectives are registered handlers (collection, clearing, path, score, combo, precision, survival, pattern, discovery, multi-stage, hybrid). They evaluate authoritative `GameStats`, events, and board occupancy. They do not read sprites, tweens, or DOM. A dedicated Win-State Resolver turns required/optional/mastery objective statuses into `IN_PROGRESS` / `COMPLETED` / `FAILED` using explicit completion, failure, and conflict policies. See `OBJECTIVE_ENGINE.md`. Completion is not mastery and does not grant currency.
 
 Obstacles are handlers registered by type. The board stores instances (`type`, `durability`, `config`). Implemented now: `lock`, `ice`. Reserved types fail validation until implemented so levels cannot smuggle unimplemented content.
 
 ## Authoritative state vs presentation
 
-`AuthoritativeGameState` is the session. `PresentationState` holds selection, highlights, pending cascade steps, and accessibility settings.
+`AuthoritativeGameState` is the session. `PresentationState` holds selection, highlights, pending cascade steps, and accessibility settings. `PlayerProgression` is save data: it must not be written back into level JSON. See `PROGRESSION_ENGINE.md`.
 
 Accessibility is a contract from day one: pattern+label (not color-only), text scale, reduced motion, large hit targets, audio/haptics controls. No full settings UI yet.
 
@@ -96,10 +105,159 @@ Accessibility is a contract from day one: pattern+label (not color-only), text s
 
 Preferred extension points:
 
-- Match `modes` and optional direction labels
+- Match `modes` / registered match rules and optional direction labels
 - Obstacle handlers
 - Mechanic registry
 - Movement/refill rules
 - Cell `tags`, sections, portals
 
 Avoid: `if (land === "lumina")` inside detect/cascade.
+
+Primitives (`src/primitives/`) are the reusable operations Land handlers will compose: state transitions, cell/occupant/edge overlays, topology mutation, pairing, regions, paths, thresholds, and transactional effect batches. See `MECHANIC_PRIMITIVES.md`. They are not Land mechanics.
+
+## Board documents vs levels
+
+Levels still require a Land, objectives, and campaign metadata. The Board Laboratory uses `BoardDocument` instead:
+
+- `purpose: "engine-fixture"`
+- no `land`, no rewards, no level numbers
+- `shape` is optional documentation
+- `connections` is the designer-facing alias for adjacency
+- `chambers` compile into sections
+- portals listed once are merged into the graph as `kind: "portal"` edges
+
+Pipeline: **Board Definition → Graph → Generic Engine**. Named silhouettes (heart, spiral, …) are fixtures, not code paths.
+
+## Serialization
+
+`serializeBoardDefinition` writes canonical JSON (sorted cells/edges). Deserialize through the Zod board schema. Round-trip must preserve ids, positions, adjacency, topology metadata, terrain, blockers, portals, and movement.
+
+## Validation
+
+## Why Glitter Match Does Not Use a Grid Engine
+
+Visual positions are presentation and authoring information. Graph connectivity is gameplay truth.
+
+A rectangular matrix would encode “neighbor” as x±1 / y±1. Heart clefts, rings, portals, chambers, and authored one-way paths are then special cases, holes, or second engines. Glitter Match has one engine: cells and authored edges. Moving a cell on screen never creates or destroys a match relationship. Only an explicit connection, flow edge, or portal does.
+
+Coordinates remain useful for layout, the Board Lab, snapping while editing, and debug labels. Matching, swapping, cascade settlement, rotation, and solvability search never derive legality from them.
+
+## Directional edges
+
+Edges may author `direction`, `orientation`, `label`, `traversal` (`both` | `forward`), `allowsMatch`, and `allowsSwap`. `bidirectional: false` is the legacy spelling of forward-only traversal.
+
+Direction labels are designer vocabulary (`n`, `cw`, `along`, …). They are never inferred from screen axes. Aligned / L / T / cross detection walks those labels. Cluster matching walks connectivity and ignores labels.
+
+## Flow model
+
+`flow` edges are a DAG of where a piece may move after a match. Branching, bottlenecks, chambers, and future portal/teleport flow are all authored `from → to` links with an optional `kind` (`gravity` | `branch` | `portal` | `teleport`). Visual “down” is presentation only. The engine never assumes `y + 1 = gravity`. Cycles and missing cell references fail validation loudly and are not repaired.
+
+## Rotation abstraction
+
+Rotation is a graph transformation of a section, not a bitmap spin.
+
+- Cell ids (sockets), terrain, portals, and adjacency stay put.
+- Occupants, movable flags, and obstacles advance along authored `occupantCycles`.
+- Optional `remapDirections` remaps direction labels with an authored map (default 90° compass vocabulary).
+- `board.rotation[sectionId] = { steps, visualAngle }` is logical state. Animation is a future presentation concern.
+
+Boundary: the engine will not invent a cycle from a bounding box or screen-space angle. Lands that want a spinner author the cycles.
+
+## Authoring helper
+
+`GraphAuthoringSession` (`src/lab/authoring.ts`) plus Board Lab **Graph authoring** mode. Designers add/move/rename/delete cells, author edges/flow/portals, import/export JSON, and see validation. Nearby-connect is an explicit optional command that writes real edges. Snap is a visual placement aid.
+
+## Solvability search
+
+`searchSolvability` enumerates legal moves, simulates swap + cascade, evaluates an objective callback, and runs bounded BFS (`maxDepth`, `maxNodes`). Statuses are exactly:
+
+- `SOLVED`
+- `NOT_FOUND_WITHIN_SEARCH_LIMIT`
+- `INVALID_BOARD_RULE_DEFINITION`
+
+A truncated or exhausted search is not a proof of unsolvability. `estimateSolvability` remains a lighter swap-only helper.
+
+## Deterministic replay
+
+A `ReplayTape` stores seed, board definition, initial occupants, and events (player-move, match-detection, cascade, board-movement, rng-decision, rotation, objective, special-match). Replaying seed + moves recomputes logic, including Special Match creation and activation. This is an engine/debug hook, not an online replay service.
+
+## Validation philosophy
+
+Malformed authoring fails loudly. Errors name the cell, edge, and property when possible:
+
+`BoardValidationError: flow edge "cell_14 → cell_22" references missing cell "cell_22".`
+
+The engine does not silently repair duplicate ids, self-edges, bad types, flow cycles, illegal rotation cycles, duplicate portals, or unknown icon references.
+
+## Accessibility principles
+
+Board Lab controls use large hit targets, high-contrast text, focus rings, keyboard activation, and pattern+letter icon marks. Graph relationships use stroke style, markers, and labels — not color alone. Reduced motion is optional. Authoring tools are radio groups, not drag-only gestures.
+
+## Architecture boundaries
+
+| System | Responsibility |
+|---|---|
+| Board Graph | What exists and what connects |
+| Match Engine | What constitutes a match (graph-authoritative rules and patterns) |
+| Special Match Engine | Candidate → instance → activation → primitive effects |
+| Cascade Engine | What happens after a match, including specials |
+| Flow Engine | How pieces move through the graph |
+| Rotation Engine | How graph regions transform |
+| Objective Engine | What the player must accomplish (registered handlers + state) |
+| Win-State Resolver | Whether the level is IN_PROGRESS / COMPLETED / FAILED |
+| Progression Engine | Level availability, attempts, completion, mastery, unlocks, aggregates |
+| Obstacle System | What blocks or modifies interaction |
+| Land DNA | Mechanical vocabulary of each Land |
+| Land Mechanic Registry | Handler contracts, effects, composition |
+| Mechanic Primitives | Reusable Land-neutral building blocks |
+| Level Definition | Data describing a puzzle |
+| Level Runtime | Session orchestration: lifecycle, move pipeline, transactions, events |
+| Presentation | Animation, sound, camera |
+
+No gameplay-critical behavior depends on UI animation.
+
+## Level Runtime Architecture
+
+`LevelRuntime` is the conductor for one active level session. It does not become another game engine. Existing systems keep their responsibilities:
+
+```
+BOARD GRAPH → MOVEMENT → MATCH ENGINE → SPECIAL MATCH ENGINE
+    → EFFECT SYSTEM → CASCADE ENGINE → OBJECTIVE ENGINE
+    → WIN-STATE RESOLVER → PROGRESSION ENGINE
+```
+
+The runtime owns sequencing, lifecycle, transaction boundaries, event ordering, and integration. It calls `canAttemptSwap`, `runCascade`, `ingestCascade` / `evaluateRuntime`, and — only when a `ProgressionRuntime` is attached — `startAttempt` / `completeAttempt` / `failAttempt`. It never walks x/y for adjacency, never implements 3+ / L / T detection, never evaluates unlock graphs, and never treats completion as mastery.
+
+### Lifecycle
+
+`UNINITIALIZED → LOADING → READY → AWAITING_MOVE → RESOLVING_MOVE → RESOLVING_MATCHES → RESOLVING_SPECIALS → RESOLVING_CASCADE → EVALUATING_OBJECTIVES → EVALUATING_OUTCOME → AWAITING_MOVE | COMPLETE | FAILED`
+
+Additional terminal states: `DEAD_UNRECOVERED` (existing fairness failure) and `ERROR` (load failure after entering LOADING). Invalid operations are rejected from the current state. A second move cannot start while resolving.
+
+### Move pipeline
+
+A legal move snapshots committed gameplay state, applies the graph-authoritative swap, then asks the Match Engine whether the swap created a match. The existing `swap.requireMatch` contract decides no-match behavior (`reject-revert` vs `commit`). Authoritative resolution then goes through `runCascade` (match → specials → effects → settle → refill → repeat). After the board is stable, the Objective Engine and Win-State Resolver run. Move limits are evaluated there, not hardcoded in the runtime. Progression is notified only if attached.
+
+### Transaction boundary
+
+The snapshot includes board, occupants, topology, Special Match runtime, objectives, stats, move count, RNG, attempt, replay tape, and runtime lifecycle. An unrecoverable engine error restores that snapshot and returns `ENGINE_RESOLUTION_ERROR`. Illegal and no-match (reject) paths never commit. There is no second transaction system — this is the session boundary around existing engines.
+
+### Events, replay, snapshot
+
+Runtime events use a monotonic `eventSequence` (not wall-clock time). Replay stores level id, content version, seed, initial state hash, and the existing `ReplayTape` move sequence. `snapshot()` / `restore()` reproduce gameplay-relevant state including RNG. `stateHash()` is a canonical gameplay fingerprint for tests and replay verification.
+
+### Progression integration
+
+When a `ProgressionRuntime` is attached, session start/complete/fail call Progression APIs. Unlock evaluation stays inside Progression. Legacy `GameSession` is a facade over `LevelRuntime` so there is one play path. `recordLevelClear` remains a compatibility write for the old player blob.
+
+### Board Lab
+
+The Runtime panel loads the current development fixture through `developmentLevelFromBoardDocument` (not a production level), submits graph-authoritative moves, and inspects lifecycle, matches, specials, cascades, objectives, outcome, progression events, hash, snapshot/restore, and replay.
+
+### Intentionally deferred
+
+Inventory Special Icons, production campaign content, Land-specific mechanics, online replay, and presentation/animation remain outside this runtime.
+
+See `LEVEL_RUNTIME.md`.
+
+

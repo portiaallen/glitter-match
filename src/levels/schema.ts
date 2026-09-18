@@ -1,121 +1,45 @@
 import { z } from "zod";
 import { LAND_IDS } from "../ids.js";
-import { TOPOLOGY_KINDS } from "../board/topology.js";
-import { MATCH_MODES } from "../matching/types.js";
 import { OBJECTIVE_TYPES } from "../objectives/model.js";
 import { REWARD_KINDS } from "../economy/rewards.js";
-
-const positionSchema = z
-  .object({
-    x: z.number(),
-    y: z.number(),
-    z: z.number().optional(),
-  })
-  .strict();
-
-const obstaclePlacementSchema = z
-  .object({
-    type: z.string().min(1),
-    durability: z.number().int().positive().optional(),
-    config: z.record(z.unknown()).optional(),
-  })
-  .strict();
-
-const cellSchema = z
-  .object({
-    id: z.string().min(1),
-    position: positionSchema,
-    active: z.boolean().optional(),
-    terrain: z.string().optional(),
-    hidden: z.boolean().optional(),
-    protected: z.boolean().optional(),
-    frozen: z.boolean().optional(),
-    tags: z.array(z.string()).optional(),
-    sectionId: z.string().optional(),
-    initialIcon: z.string().optional(),
-    initialObstacles: z.array(obstaclePlacementSchema).optional(),
-  })
-  .strict();
-
-const edgeSchema = z
-  .object({
-    from: z.string().min(1),
-    to: z.string().min(1),
-    direction: z.string().optional(),
-    bidirectional: z.boolean().optional(),
-    kind: z.enum(["adjacent", "portal", "bridge"]).optional(),
-  })
-  .strict();
-
-const flowSchema = z
-  .object({
-    from: z.string().min(1),
-    to: z.string().min(1),
-  })
-  .strict();
-
-const portalSchema = z
-  .object({
-    id: z.string().min(1),
-    from: z.string().min(1),
-    to: z.string().min(1),
-    bidirectional: z.boolean().optional(),
-    conductsMatches: z.boolean().optional(),
-    allowsSwap: z.boolean().optional(),
-  })
-  .strict();
-
-const sectionSchema = z
-  .object({
-    id: z.string().min(1),
-    cellIds: z.array(z.string().min(1)).min(1),
-    rotation: z
-      .object({
-        incrementDegrees: z.number(),
-        rotatable: z.boolean(),
-      })
-      .strict()
-      .optional(),
-    chamber: z.string().optional(),
-    layer: z.string().optional(),
-  })
-  .strict();
-
-const topologySchema = z
-  .object({
-    kind: z.enum(TOPOLOGY_KINDS),
-    notes: z.string().optional(),
-    chambers: z.array(z.string()).optional(),
-    layers: z.array(z.string()).optional(),
-  })
-  .strict();
-
-const movementSchema = z
-  .object({
-    mode: z.enum(["none", "along-flow"]),
-    refill: z
-      .object({
-        mode: z.enum(["none", "spawn-at-sources"]),
-        sourceCellIds: z.array(z.string()).optional(),
-        avoidImmediateMatches: z.boolean().optional(),
-        maxAvoidAttempts: z.number().int().positive().optional(),
-      })
-      .strict(),
-  })
-  .strict();
-
-const matchRulesSchema = z
-  .object({
-    minGroupSize: z.number().int().min(2),
-    modes: z.array(z.enum(MATCH_MODES)).min(1),
-  })
-  .strict();
+import {
+  cellSchema,
+  edgeSchema,
+  flowSchema,
+  matchRulesSchema,
+  movementSchema,
+  obstaclePlacementSchema,
+  portalSchema,
+  sectionSchema,
+  topologySchema,
+} from "../board/schema.js";
+import { difficultySchema } from "../difficulty/model.js";
+import {
+  levelMovementModelSchema,
+  pacingRoleSchema,
+  ruleOfThreeSchema,
+  symmetrySchema,
+  timerConfigSchema,
+} from "../dna/contracts.js";
+import { twistContractSchema } from "../twists/contract.js";
+import { discoveryContractSchema, secretContractSchema } from "../secrets/contract.js";
+import { gateReferenceSchema } from "../gates/contract.js";
+import {
+  museumReferenceSchema,
+  personalStoryReferenceSchema,
+  sanctuaryReferenceSchema,
+} from "../universe/references.js";
+import { levelAccessibilitySchema } from "../ui/level-accessibility.js";
+import { MATCH_CONTRACT_IDS } from "../matching/contracts.js";
+import { SCHEMA_VERSION } from "../content/versions.js";
 
 const objectiveSchema: z.ZodTypeAny = z.lazy(() =>
   z
     .object({
       id: z.string().min(1),
       type: z.enum(OBJECTIVE_TYPES),
+      version: z.string().optional(),
+      role: z.enum(["required", "optional", "mastery"]).optional(),
       iconId: z.string().optional(),
       count: z.number().int().positive().optional(),
       score: z.number().int().nonnegative().optional(),
@@ -129,9 +53,33 @@ const objectiveSchema: z.ZodTypeAny = z.lazy(() =>
       stages: z.array(objectiveSchema).optional(),
       children: z.array(objectiveSchema).optional(),
       mode: z.enum(["all", "any"]).optional(),
+      composition: z.enum(["and", "or", "sequence", "not"]).optional(),
+      dependsOn: z.array(z.string().min(1)).optional(),
+      accessibilityLabel: z.string().optional(),
+      countUnit: z.string().optional(),
+      targetKind: z.enum(["icon", "cell", "artifact", "state", "event"]).optional(),
+      countPlayerMatches: z.boolean().optional(),
+      countCascades: z.boolean().optional(),
+      countSpecialMatches: z.boolean().optional(),
+      countObstacles: z.boolean().optional(),
+      maxCount: z.number().int().positive().optional(),
+      pathMode: z.enum(["cleared-endpoints", "graph"]).optional(),
+      minPathLength: z.number().int().positive().optional(),
+      patternId: z.string().optional(),
+      comboEvents: z.array(z.string().min(1)).optional(),
+      forbiddenEvents: z.array(z.string().min(1)).optional(),
+      surviveMoves: z.number().int().positive().optional(),
     })
     .strict(),
 );
+
+const winStateSchema = z
+  .object({
+    completionPolicy: z.enum(["ALL_REQUIRED_OBJECTIVES", "ANY_REQUIRED_OBJECTIVE", "SEQUENCE_COMPLETE", "CUSTOM_REGISTERED_POLICY"]).optional(),
+    failurePolicy: z.enum(["NONE", "ANY_FAILURE", "ALL_FAILURES", "MOVE_LIMIT", "REGISTERED_FAILURE_CONDITION"]).optional(),
+    conflictPolicy: z.enum(["completion-first", "failure-first"]).optional(),
+  })
+  .strict();
 
 const rewardSchema = z
   .object({
@@ -141,22 +89,43 @@ const rewardSchema = z
   })
   .strict();
 
-const difficultySchema = z
+const expandedMatchRulesSchema = matchRulesSchema.extend({
+  contracts: z.array(z.enum(MATCH_CONTRACT_IDS)).optional(),
+  orientationLabels: z.record(z.array(z.string().min(1))).optional(),
+});
+
+const masterySchema = z
   .object({
-    cognitive: z.number().min(0).max(10).optional(),
-    spatial: z.number().min(0).max(10).optional(),
-    timing: z.number().min(0).max(10).optional(),
-    scarcity: z.number().min(0).max(10).optional(),
+    maxMovesUsed: z.number().int().positive().optional(),
+    minScore: z.number().int().nonnegative().optional(),
+    noSpecialIcons: z.boolean().optional(),
+    optionalObjectives: z.array(objectiveSchema).optional(),
+    rewardRef: z.string().optional(),
     notes: z.string().optional(),
   })
   .strict();
 
+/**
+ * Level DNA contract.
+ *
+ * Board Shape + Topology + Symmetry + Movement + Match Rules + Icon Pool +
+ * Objective + Obstacles + Land Mechanic + Difficulty + Twist + Secret +
+ * Mastery + Story + Rewards
+ *
+ * 640 campaign levels are future content. They are not part of this schema's
+ * implementation — only the contract that will author them later.
+ */
 export const levelDefinitionSchema = z
   .object({
     id: z.string().min(1),
     status: z.enum(["development", "production"]),
     land: z.enum(LAND_IDS),
     title: z.string().min(1),
+    schemaVersion: z.string().min(1).optional(),
+    contentVersion: z.string().min(1).optional(),
+    purpose: z.enum(["engine-fixture", "contract-fixture", "campaign"]).optional(),
+    shape: z.string().optional(),
+    symmetry: symmetrySchema.optional(),
     board: z
       .object({
         topology: topologySchema,
@@ -171,25 +140,50 @@ export const levelDefinitionSchema = z
       })
       .strict(),
     iconPool: z.array(z.string().min(1)).min(1),
-    matchRules: matchRulesSchema,
+    matchRules: expandedMatchRulesSchema,
     movementRules: movementSchema.optional(),
+    movementModel: levelMovementModelSchema.optional(),
     objective: objectiveSchema,
+    objectives: z.array(objectiveSchema).optional(),
+    winState: winStateSchema.optional(),
     obstacles: z.array(obstaclePlacementSchema).optional(),
-    mechanics: z.array(z.string()).optional(),
+    mechanics: z
+      .array(
+        z.union([
+          z.string().min(1),
+          z
+            .object({
+              id: z.string().min(1),
+              priority: z.number().int().optional(),
+            })
+            .strict(),
+        ]),
+      )
+      .optional(),
     difficulty: difficultySchema.optional(),
+    pacing: pacingRoleSchema.optional(),
+    ruleOfThree: ruleOfThreeSchema.optional(),
     moveLimit: z.number().int().positive().nullable(),
     timerMs: z.number().int().positive().nullable().optional(),
-    twist: z.string().optional(),
-    secret: z.string().optional(),
-    mastery: z
+    timer: timerConfigSchema.optional(),
+    twist: twistContractSchema.optional(),
+    secret: secretContractSchema.optional(),
+    discoveries: z.array(discoveryContractSchema).optional(),
+    mastery: masterySchema.optional(),
+    storyRef: personalStoryReferenceSchema.optional(),
+    sanctuaryRef: sanctuaryReferenceSchema.optional(),
+    museumRef: museumReferenceSchema.optional(),
+    gateRef: gateReferenceSchema.optional(),
+    rewards: z.array(rewardSchema).optional(),
+    accessibility: levelAccessibilitySchema.optional(),
+    validation: z
       .object({
-        maxMovesUsed: z.number().int().positive().optional(),
-        minScore: z.number().int().nonnegative().optional(),
-        noSpecialIcons: z.boolean().optional(),
+        author: z.string().optional(),
+        lastValidated: z.string().optional(),
+        notes: z.string().optional(),
       })
       .strict()
       .optional(),
-    rewards: z.array(rewardSchema).optional(),
     placement: z
       .object({
         mode: z.enum(["authored", "seeded-random"]),
@@ -219,3 +213,17 @@ export type LevelDefinition = z.infer<typeof levelDefinitionSchema>;
 export function parseLevelJson(input: unknown): LevelDefinition {
   return levelDefinitionSchema.parse(input);
 }
+
+export const LEVEL_DNA_REQUIRED_FOR_PRODUCTION = [
+  "schemaVersion",
+  "contentVersion",
+  "shape",
+  "symmetry",
+  "movementModel",
+  "difficulty",
+  "pacing",
+  "ruleOfThree",
+  "accessibility",
+] as const;
+
+export { SCHEMA_VERSION };

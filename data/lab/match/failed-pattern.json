@@ -1,0 +1,21 @@
+{
+  "id": "match.failed-pattern",
+  "status": "development",
+  "purpose": "engine-fixture",
+  "title": "Failed pattern",
+  "notes": "ENGINE TEST FIXTURE ONLY. L topology with incompatible occupants so the pattern must fail loudly in explain output.",
+  "topology": { "kind": "custom" },
+  "cells": [
+    { "id": "c", "position": { "x": 0, "y": 0 }, "initialIcon": "dev.spark-a" },
+    { "id": "n", "position": { "x": 0, "y": -1 }, "initialIcon": "dev.spark-b" },
+    { "id": "e", "position": { "x": 1, "y": 0 }, "initialIcon": "dev.spark-c" }
+  ],
+  "connections": [
+    { "from": "c", "to": "n", "direction": "n" },
+    { "from": "c", "to": "e", "direction": "e" }
+  ],
+  "iconPool": ["dev.spark-a", "dev.spark-b", "dev.spark-c"],
+  "matchRules": { "minGroupSize": 3, "modes": ["corner"] },
+  "placement": { "mode": "authored" },
+  "movement": { "mode": "none", "refill": { "mode": "none" } }
+}

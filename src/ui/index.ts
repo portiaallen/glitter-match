@@ -4,3 +4,8 @@ export {
   type AccessibilitySettings,
   type PresentationContract,
 } from "./accessibility.js";
+export {
+  DEFAULT_LEVEL_ACCESSIBILITY,
+  levelAccessibilitySchema,
+  type LevelAccessibility,
+} from "./level-accessibility.js";

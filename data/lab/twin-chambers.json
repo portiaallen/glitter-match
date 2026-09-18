@@ -1,0 +1,71 @@
+{
+  "id": "lab.twin-chambers",
+  "status": "development",
+  "purpose": "engine-fixture",
+  "title": "Twin Chambers",
+  "shape": "twin_chambers",
+  "notes": "ENGINE TEST FIXTURE ONLY. Two visually separated chambers. A portal, not empty space, is the only logical link. Visual separation ≠ logical separation.",
+  "topology": {
+    "kind": "portal-connected",
+    "notes": "Left and right chambers exist as explicit cells. The gap is not a hidden grid.",
+    "chambers": ["left", "right"]
+  },
+  "chambers": [
+    { "id": "left", "cellIds": ["lc", "ln", "le", "ls", "lw", "lne", "lse"] },
+    { "id": "right", "cellIds": ["rc", "rn", "re", "rs", "rw", "rnw", "rsw"] }
+  ],
+  "cells": [
+    { "id": "lc", "position": { "x": -3.4, "y": 0 }, "initialIcon": "dev.spark-a", "sectionId": "left" },
+    { "id": "ln", "position": { "x": -3.4, "y": -1.2 }, "initialIcon": "dev.spark-b", "sectionId": "left" },
+    { "id": "le", "position": { "x": -2.2, "y": 0 }, "initialIcon": "dev.spark-c", "sectionId": "left", "terrain": "gate" },
+    { "id": "ls", "position": { "x": -3.4, "y": 1.2 }, "initialIcon": "dev.spark-b", "sectionId": "left" },
+    { "id": "lw", "position": { "x": -4.6, "y": 0 }, "initialIcon": "dev.spark-c", "sectionId": "left" },
+    { "id": "lne", "position": { "x": -2.5, "y": -0.9 }, "initialIcon": "dev.spark-a", "sectionId": "left" },
+    { "id": "lse", "position": { "x": -2.5, "y": 0.9 }, "initialIcon": "dev.spark-a", "sectionId": "left" },
+    { "id": "rc", "position": { "x": 3.4, "y": 0 }, "initialIcon": "dev.spark-b", "sectionId": "right" },
+    { "id": "rn", "position": { "x": 3.4, "y": -1.2 }, "initialIcon": "dev.spark-c", "sectionId": "right" },
+    { "id": "re", "position": { "x": 4.6, "y": 0 }, "initialIcon": "dev.spark-a", "sectionId": "right" },
+    { "id": "rs", "position": { "x": 3.4, "y": 1.2 }, "initialIcon": "dev.spark-c", "sectionId": "right" },
+    { "id": "rw", "position": { "x": 2.2, "y": 0 }, "initialIcon": "dev.spark-a", "sectionId": "right", "terrain": "gate" },
+    { "id": "rnw", "position": { "x": 2.5, "y": -0.9 }, "initialIcon": "dev.spark-b", "sectionId": "right" },
+    { "id": "rsw", "position": { "x": 2.5, "y": 0.9 }, "initialIcon": "dev.spark-b", "sectionId": "right" }
+  ],
+  "connections": [
+    { "from": "lc", "to": "ln" },
+    { "from": "lc", "to": "le" },
+    { "from": "lc", "to": "ls" },
+    { "from": "lc", "to": "lw" },
+    { "from": "lc", "to": "lne" },
+    { "from": "lc", "to": "lse" },
+    { "from": "ln", "to": "lne" },
+    { "from": "le", "to": "lne" },
+    { "from": "le", "to": "lse" },
+    { "from": "ls", "to": "lse" },
+    { "from": "rc", "to": "rn" },
+    { "from": "rc", "to": "re" },
+    { "from": "rc", "to": "rs" },
+    { "from": "rc", "to": "rw" },
+    { "from": "rc", "to": "rnw" },
+    { "from": "rc", "to": "rsw" },
+    { "from": "rn", "to": "rnw" },
+    { "from": "rw", "to": "rnw" },
+    { "from": "rw", "to": "rsw" },
+    { "from": "rs", "to": "rsw" }
+  ],
+  "portals": [
+    {
+      "id": "chamber-gate",
+      "from": "le",
+      "to": "rw",
+      "bidirectional": true,
+      "conductsMatches": true,
+      "allowsSwap": true
+    }
+  ],
+  "portalsConductMatches": true,
+  "portalsAllowSwap": true,
+  "iconPool": ["dev.spark-a", "dev.spark-b", "dev.spark-c"],
+  "matchRules": { "minGroupSize": 3, "modes": ["cluster"] },
+  "placement": { "mode": "authored" },
+  "movement": { "mode": "none", "refill": { "mode": "none" } }
+}

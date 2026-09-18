@@ -1,5 +1,5 @@
-import { getCell, type Board } from "../board/index.js";
-import { detectMatches } from "../matching/index.js";
+import { encodeOccupant, getCell, type Board } from "../board/index.js";
+import { detectMatches, type MatchRules } from "../matching/index.js";
 import { isDeadBoard, listValidMoves } from "../fairness/index.js";
 import type { LevelDefinition } from "../levels/index.js";
 import type { IconRegistry } from "../icons/index.js";
@@ -8,24 +8,26 @@ import type { ObstacleRegistry } from "../obstacles/index.js";
 export interface BoardInspection {
   topologyKind: string;
   topologyNotes?: string;
+  connectivity?: "required" | "optional";
   cellIds: string[];
   positions: Record<string, { x: number; y: number; z?: number }>;
   adjacency: Record<string, string[]>;
   directed: Record<string, Array<{ to: string; direction?: string; kind: string }>>;
   flow: Record<string, string[]>;
-  portals: LevelDefinition["board"]["portals"];
-  sections: LevelDefinition["board"]["sections"];
+  portals: Board["topology"]["portals"];
+  sections: Board["topology"]["sections"];
   icons: Record<string, string | null>;
   flags: Record<string, Board["cells"][string]["flags"]>;
   obstacles: Record<string, Board["cells"][string]["obstacles"]>;
+  terrain: Record<string, string | undefined>;
   matches: ReturnType<typeof detectMatches>;
   validMoves: ReturnType<typeof listValidMoves>;
   deadBoard: boolean;
 }
 
-export function inspectBoard(
+export function inspectPlayableBoard(
   board: Board,
-  level: LevelDefinition,
+  matchRules: MatchRules,
   icons: IconRegistry,
   obstacles: ObstacleRegistry,
 ): BoardInspection {
@@ -33,32 +35,46 @@ export function inspectBoard(
   const flags: BoardInspection["flags"] = {};
   const obstacleState: BoardInspection["obstacles"] = {};
   const positions: BoardInspection["positions"] = {};
+  const terrain: BoardInspection["terrain"] = {};
 
   for (const id of board.topology.cellIds) {
     const cell = getCell(board, id);
-    iconsState[id] = cell.occupant.type === "icon" ? cell.occupant.iconId : null;
+    iconsState[id] = encodeOccupant(cell.occupant);
     flags[id] = { ...cell.flags };
     obstacleState[id] = cell.obstacles.map((item) => ({ ...item }));
     positions[id] = { ...board.topology.cells[id]!.position };
+    terrain[id] = board.topology.cells[id]?.terrain;
   }
 
   return {
     topologyKind: board.topology.topology.kind,
     topologyNotes: board.topology.topology.notes,
+    connectivity: board.topology.topology.connectivity,
     cellIds: [...board.topology.cellIds],
     positions,
     adjacency: { ...board.topology.adjacency },
     directed: { ...board.topology.directed },
     flow: { ...board.topology.flowDown },
-    portals: level.board.portals,
-    sections: level.board.sections,
+    portals: board.topology.portals,
+    sections: board.topology.sections,
     icons: iconsState,
     flags,
     obstacles: obstacleState,
-    matches: detectMatches(board, level.matchRules, icons),
-    validMoves: listValidMoves(board, level.matchRules, icons, obstacles),
-    deadBoard: isDeadBoard(board, level.matchRules, icons, obstacles),
+    terrain,
+    matches: detectMatches(board, matchRules, icons),
+    validMoves: listValidMoves(board, matchRules, icons, obstacles),
+    deadBoard: isDeadBoard(board, matchRules, icons, obstacles),
   };
+}
+
+/** @deprecated Prefer inspectPlayableBoard — kept so existing level debug calls compile. */
+export function inspectBoard(
+  board: Board,
+  level: LevelDefinition,
+  icons: IconRegistry,
+  obstacles: ObstacleRegistry,
+): BoardInspection {
+  return inspectPlayableBoard(board, level.matchRules, icons, obstacles);
 }
 
 export function toDot(inspection: BoardInspection): string {
@@ -76,7 +92,9 @@ export function toDot(inspection: BoardInspection): string {
         continue;
       }
       seen.add(key);
-      lines.push(`  "${from}" -- "${to}";`);
+      const kind = inspection.directed[from]?.find((edge) => edge.to === to)?.kind ?? "adjacent";
+      const attr = kind === "portal" ? " [style=dashed,color=purple]" : kind === "bridge" ? " [color=gold,penwidth=2]" : "";
+      lines.push(`  "${from}" -- "${to}"${attr};`);
     }
   }
   lines.push("}");

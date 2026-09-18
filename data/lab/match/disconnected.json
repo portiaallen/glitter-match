@@ -1,0 +1,26 @@
+{
+  "id": "match.disconnected",
+  "status": "development",
+  "purpose": "engine-fixture",
+  "title": "Disconnected graph",
+  "notes": "ENGINE TEST FIXTURE ONLY. Two islands; matching must not jump the gap from coordinates.",
+  "topology": { "kind": "custom", "connectivity": "optional", "notes": "Two disconnected components." },
+  "cells": [
+    { "id": "a1", "position": { "x": 0, "y": 0 }, "initialIcon": "dev.spark-a" },
+    { "id": "a2", "position": { "x": 1, "y": 0 }, "initialIcon": "dev.spark-a" },
+    { "id": "a3", "position": { "x": 2, "y": 0 }, "initialIcon": "dev.spark-a" },
+    { "id": "b1", "position": { "x": 10, "y": 0 }, "initialIcon": "dev.spark-a" },
+    { "id": "b2", "position": { "x": 11, "y": 0 }, "initialIcon": "dev.spark-a" },
+    { "id": "b3", "position": { "x": 12, "y": 0 }, "initialIcon": "dev.spark-a" }
+  ],
+  "connections": [
+    { "from": "a1", "to": "a2" },
+    { "from": "a2", "to": "a3" },
+    { "from": "b1", "to": "b2" },
+    { "from": "b2", "to": "b3" }
+  ],
+  "iconPool": ["dev.spark-a"],
+  "matchRules": { "minGroupSize": 3, "modes": ["cluster"] },
+  "placement": { "mode": "authored" },
+  "movement": { "mode": "none", "refill": { "mode": "none" } }
+}

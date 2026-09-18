@@ -21,6 +21,8 @@ describe("icon registry", () => {
       id: "spark",
       kind: "ordinary",
       landId: "lumina",
+      familyId: "lumina.ordinary",
+      contentVersion: "0.1.0-architecture",
       presentation: { displayName: "Spark", patternId: "spark" },
     });
     expect(() =>
@@ -28,6 +30,8 @@ describe("icon registry", () => {
         id: "spark",
         kind: "ordinary",
         landId: "glimmer",
+        familyId: "glimmer.ordinary",
+        contentVersion: "0.1.0-architecture",
         presentation: { displayName: "Spark", patternId: "spark" },
       }),
     ).toThrow(/ZERO DUPLICATES/);
@@ -39,12 +43,16 @@ describe("icon registry", () => {
       id: "lumina-spark",
       kind: "ordinary",
       landId: "lumina",
+      familyId: "lumina.ordinary",
+      contentVersion: "0.1.0-architecture",
       presentation: { displayName: "Radiant Spark", patternId: "a" },
     });
     registry.register({
       id: "glimmer-spark",
       kind: "ordinary",
       landId: "glimmer",
+      familyId: "glimmer.ordinary",
+      contentVersion: "0.1.0-architecture",
       presentation: { displayName: "Radiant Spark", patternId: "b" },
     });
     expect(() => throwIfErrors(registry.validateIntegrity())).toThrow(/duplicated across Lands/);
@@ -54,7 +62,8 @@ describe("icon registry", () => {
     const registry = createProductionIconRegistry();
     const bomb = registry.get("glitter-bomb");
     expect(bomb.kind).toBe("special");
-    expect(registry.ordinaryIconsFor("lumina")).toEqual([]);
+    expect(registry.ordinaryIconsFor("lumina").every((icon) => icon.kind === "ordinary")).toBe(true);
+    expect(registry.ordinaryIconsFor("lumina").some((icon) => icon.id === "glitter-bomb")).toBe(false);
   });
 
   it("allows development icons only as explicit fixtures", () => {

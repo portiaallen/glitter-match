@@ -1,0 +1,49 @@
+{
+  "id": "lab.cascade-chain",
+  "status": "development",
+  "purpose": "engine-fixture",
+  "title": "Cascade Chain",
+  "shape": "staircase",
+  "notes": "ENGINE TEST FIXTURE ONLY. Controlled cascade: swap c3 with side to match three A's; remaining B's settle along flow into a second match. Logic is independent of animation.",
+  "topology": {
+    "kind": "custom",
+    "notes": "Crooked gravity path. Flow is authored, not 'down on a matrix'."
+  },
+  "cells": [
+    { "id": "c0", "position": { "x": -1.5, "y": -3 }, "initialIcon": "dev.spark-b" },
+    { "id": "c1", "position": { "x": -0.5, "y": -2 }, "initialIcon": "dev.spark-a" },
+    { "id": "c2", "position": { "x": 0.5, "y": -1 }, "initialIcon": "dev.spark-a" },
+    { "id": "c3", "position": { "x": 1.5, "y": 0 }, "initialIcon": "dev.spark-c" },
+    { "id": "c4", "position": { "x": 1.5, "y": 1.2 }, "initialIcon": "dev.spark-b" },
+    { "id": "c5", "position": { "x": 0.5, "y": 2.2 }, "initialIcon": "dev.spark-b" },
+    { "id": "side", "position": { "x": 3.1, "y": 0 }, "initialIcon": "dev.spark-a" }
+  ],
+  "connections": [
+    { "from": "c0", "to": "c1", "direction": "se" },
+    { "from": "c1", "to": "c2", "direction": "se" },
+    { "from": "c2", "to": "c3", "direction": "se" },
+    { "from": "c3", "to": "c4", "direction": "s" },
+    { "from": "c4", "to": "c5", "direction": "sw" },
+    { "from": "c3", "to": "side", "direction": "e" }
+  ],
+  "flow": [
+    { "from": "c0", "to": "c1" },
+    { "from": "c1", "to": "c2" },
+    { "from": "c2", "to": "c3" },
+    { "from": "c3", "to": "c4" },
+    { "from": "c4", "to": "c5" }
+  ],
+  "movement": {
+    "mode": "along-flow",
+    "refill": { "mode": "none" }
+  },
+  "iconPool": ["dev.spark-a", "dev.spark-b", "dev.spark-c"],
+  "matchRules": { "minGroupSize": 3, "modes": ["cluster"] },
+  "placement": { "mode": "authored" },
+  "demoObjective": {
+    "id": "lab-collect-a",
+    "type": "collection",
+    "iconId": "dev.spark-a",
+    "count": 3
+  }
+}

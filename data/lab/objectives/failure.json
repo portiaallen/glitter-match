@@ -1,0 +1,81 @@
+{
+  "status": "development",
+  "purpose": "engine-fixture",
+  "topology": {
+    "kind": "linear",
+    "notes": "Objective engine fixture. Not a level."
+  },
+  "cells": [
+    {
+      "id": "c0",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "initialIcon": "dev.spark-a"
+    },
+    {
+      "id": "c1",
+      "position": {
+        "x": 1,
+        "y": 0
+      },
+      "initialIcon": "dev.spark-a"
+    },
+    {
+      "id": "c2",
+      "position": {
+        "x": 2,
+        "y": 0
+      },
+      "initialIcon": "dev.spark-b"
+    }
+  ],
+  "connections": [
+    {
+      "from": "c0",
+      "to": "c1",
+      "direction": "e"
+    },
+    {
+      "from": "c1",
+      "to": "c2",
+      "direction": "e"
+    }
+  ],
+  "iconPool": [
+    "dev.spark-a",
+    "dev.spark-b"
+  ],
+  "matchRules": {
+    "minGroupSize": 3,
+    "modes": [
+      "cluster"
+    ]
+  },
+  "placement": {
+    "mode": "authored"
+  },
+  "movement": {
+    "mode": "none",
+    "refill": {
+      "mode": "none"
+    }
+  },
+  "id": "objective.failure",
+  "title": "Failure condition",
+  "notes": "ENGINE TEST FIXTURE ONLY. Not a campaign level. Not rewards or story.",
+  "demoObjective": {
+    "id": "fail-survive",
+    "type": "survival",
+    "cascades": 99,
+    "forbiddenEvents": [
+      "REGISTERED_COMBO"
+    ],
+    "accessibilityLabel": "Survive without a registered combo."
+  },
+  "winState": {
+    "failurePolicy": "ANY_FAILURE",
+    "conflictPolicy": "failure-first"
+  }
+}
