@@ -1,5 +1,6 @@
 import { createBoard, getCell, type Board, type BoardDefinition } from "../board/index.js";
 import { occupantsFromSerialized, serializeBoardState } from "../board/serialize.js";
+import { encodeOccupant } from "../board/occupants.js";
 import { runCascade, type CascadeReport } from "../cascade/index.js";
 import { canAttemptSwap, swapOccupants } from "../fairness/index.js";
 import type { MatchRules } from "../matching/index.js";
@@ -8,6 +9,7 @@ import { createEmptyStats, type GameStats } from "../objectives/index.js";
 import type { EngineRegistries } from "../state/session.js";
 import { createRandomSource, type RandomSnapshot, type RandomSource } from "../random/index.js";
 import { rotateSection } from "../board/rotation.js";
+import { createSpecialMatchRuntime } from "../special-matches/runtime.js";
 
 export type ReplayEvent =
   | { kind: "player-move"; a: string; b: string }
@@ -16,7 +18,8 @@ export type ReplayEvent =
   | { kind: "board-movement"; moves: Array<{ from: string; to: string; iconId: string }> }
   | { kind: "rng-decision"; purpose: string; snapshot: RandomSnapshot }
   | { kind: "rotation"; sectionId: string; steps: number; visualAngle: number }
-  | { kind: "objective"; complete: boolean; label?: string };
+  | { kind: "objective"; complete: boolean; label?: string }
+  | { kind: "special-match"; instanceIds: string[]; created: string[]; termination: string };
 
 export interface ReplayTape {
   version: 1;
@@ -87,6 +90,7 @@ export function replayTape(
     occupants: tape.initialOccupants,
   }));
   const stats = createEmptyStats();
+  const specialRuntime = createSpecialMatchRuntime();
   let lastCascade: CascadeReport | null = null;
   const events: ReplayEvent[] = [];
 
@@ -98,6 +102,7 @@ export function replayTape(
       events.push(event);
       events.push({ kind: "rng-decision", purpose: "pre-swap", snapshot: random.snapshot() });
       swapOccupants(board, event.a, event.b);
+      specialRuntime.moveIndex += 1;
       const matches = detectMatches(board, options.matchRules, options.registries.icons);
       events.push({
         kind: "match-detection",
@@ -114,11 +119,18 @@ export function replayTape(
         random,
         stats,
         scoreForMatch: (group, combo) => group.cellIds.length * 10 * combo,
+        specialRuntime,
       });
       events.push({
         kind: "cascade",
         combo: lastCascade.combo,
         clearedCellIds: lastCascade.steps.flatMap((step) => step.clearedCellIds),
+      });
+      events.push({
+        kind: "special-match",
+        instanceIds: lastCascade.specialMatchesCreated,
+        created: lastCascade.specialMatchesCreated,
+        termination: lastCascade.termination,
       });
       const moved = lastCascade.steps.flatMap((step) => step.moved);
       if (moved.length > 0) {
@@ -147,7 +159,7 @@ export function occupantSnapshot(board: Board): Record<string, string | null> {
   const occupants: Record<string, string | null> = {};
   for (const id of board.topology.cellIds) {
     const occupant = getCell(board, id).occupant;
-    occupants[id] = occupant.type === "icon" ? occupant.iconId : null;
+    occupants[id] = encodeOccupant(occupant);
   }
   return occupants;
 }

@@ -29,6 +29,9 @@
         <h2>Fixtures</h2>
         <p class="hint">Same matcher. Different graphs.</p>
         <ul id="fixture-list"></ul>
+        <h2>Special Match fixtures</h2>
+        <p class="hint">Engine tests only. Not campaign content. Not inventory Special Icons.</p>
+        <ul id="special-fixture-list"></ul>
       </nav>
       <main id="board" class="stage">
         <svg id="canvas" role="img" aria-label="Board topology visualization"></svg>
@@ -92,6 +95,17 @@
             <button type="button" id="run-primitive">Trigger primitive</button>
           </div>
           <pre id="primitive-out" role="status"></pre>
+        </section>
+        <section id="special-panel">
+          <h3>Special Matches</h3>
+          <p class="hint">Board Special Matches created by matching. Not Glitter Bomb / Hammer / Prism / Wild Card / Magic Swap / Lightning.</p>
+          <div class="actions">
+            <button type="button" id="special-inspect">Inspect candidates</button>
+            <button type="button" id="special-activate">Activate selected / first armed</button>
+            <button type="button" id="special-serialize">Serialize state</button>
+            <button type="button" id="special-replay">Replay tape</button>
+          </div>
+          <pre id="special-out" role="status"></pre>
         </section>
         <div class="actions">
           <button type="button" id="resolve">Resolve matches</button>

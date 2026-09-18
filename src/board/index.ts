@@ -43,6 +43,7 @@ export {
   connectivityRequired,
   type ConnectedComponent,
 } from "./components.js";
+export { decodeOccupant, encodeOccupant } from "./occupants.js";
 export {
   boardDefinitionsEquivalent,
   canonicalizeBoardDefinition,

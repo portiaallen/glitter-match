@@ -12,4 +12,6 @@ Each file is a `BoardDocument`:
 
 A future designer can add a completely new shape by authoring another document like these — without changing the core matcher.
 
-These files must not become production Level DNA automatically. The content validator rejects `lab.*` ids and `data/lab/` paths under the production profile.
+`data/lab/special/` holds Special Match engine fixtures. They are also `purpose: "engine-fixture"` and must not become campaign levels.
+
+These files must not become production Level DNA automatically. The content validator rejects `lab.*` / `special.*` ids and `data/lab/` paths under the production profile.

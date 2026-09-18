@@ -2,7 +2,7 @@
 
 Glitter Match is an unconventional match-puzzle game in the Glitter Universe. The board is a **graph of playable cells**, not a rectangular matrix. Board shape and topology are part of the puzzle.
 
-This repository currently contains the **engine, Board Laboratory, content-architecture contracts, and Land DNA**. There is no campaign. **640 levels are future content and are not part of this implementation.**
+This repository currently contains the **engine, Board Laboratory, content-architecture contracts, Land DNA, mechanic primitives, match rules, and the Special Match engine**. There is no campaign. **640 levels are future content and are not part of this implementation.**
 
 Core philosophy: *Simple to understand. Difficult to master. Impossible to completely predict.*
 
@@ -26,7 +26,8 @@ Visual positions are presentation/authoring information. Graph connectivity is g
 src/
   board/          Graph cells, topology, directional edges, flow, rotation
   matching/       Graph-authoritative match rules, patterns, walks, overlap, events
-  cascade/        Detect → resolve → effects → move → refill
+  cascade/        Detect → resolve → specials → effects → move → refill
+  special-matches/ Board Special Match registry, creation, activation
   random/         Seeded, snapshotable RNG
   fairness/       Valid moves, dead boards, recovery
   solvability/    Legal-move simulation, bounded objective search
@@ -58,6 +59,7 @@ data/lab/         Board Laboratory topology fixtures (not levels)
 data/lab/match/   Match-engine test fixtures (not levels, not in the visual catalog)
 LAND_DNA.md       Eight Land mechanical identities (not puzzles)
 MATCH_RULES.md    Match Rule & Pattern Engine (graph-authoritative)
+SPECIAL_MATCH_ENGINE.md  Board Special Matches (not inventory Special Icons)
 MECHANIC_PRIMITIVES.md  Reusable engine primitives (not Land mechanics)
 lab/              Developer Board Laboratory visualizer + authoring helper
 tests/            Engine tests (no UI)
@@ -124,6 +126,8 @@ Click two cells to see why they can or cannot interact (graph edges, not x±1/y�
 **Graph Authoring Helper** (mode: Graph authoring): add/move/rename/delete cells, author edges, flow, and portals, import/export JSON, and read validation errors. Optional “Connect nearby” writes real authored edges you can inspect. Snap is visual only. This helper is not the player-facing game.
 
 Play / inspect can trigger **mechanic primitive recipes** on the current fixture (disable edge, lock, swap, pair, region, path, threshold). That inspects reusable engine blocks. It is not a campaign editor and not a Land mechanic.
+
+The **Special Match** panel inspects candidates, created board specials, activation, effects, cascade steps, serialization, and replay. Those are board Special Matches created by matching — not inventory Special Icons. Fixtures under `data/lab/special/` are engine tests only.
 
 ## How to author an irregular board
 

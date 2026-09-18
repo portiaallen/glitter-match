@@ -16,6 +16,7 @@ import type { ObstacleRegistry } from "../obstacles/index.js";
 import { createNewProgression, type PlayerProgression } from "../progression/index.js";
 import { createRandomSource, restoreRandomSource, type RandomSource } from "../random/index.js";
 import { createEmptySpecialInventory, type SpecialIconInventory } from "../special-icons/index.js";
+import { createSpecialMatchRuntime } from "../special-matches/index.js";
 import { DEFAULT_ACCESSIBILITY } from "../ui/accessibility.js";
 import { issue, throwIfErrors } from "../validation.js";
 import type { AuthoritativeGameState, PresentationState } from "./types.js";
@@ -67,6 +68,7 @@ export class GameSession {
       combo: 0,
       lastCascade: null,
       specialInventory: options.specialInventory ?? createEmptySpecialInventory(),
+      specialMatches: createSpecialMatchRuntime(),
       earnedRewards: [],
       status: "playing",
       rng: this.random.snapshot(),
@@ -106,6 +108,7 @@ export class GameSession {
         );
       }
     }
+    this.state.specialMatches.moveIndex += 1;
     const cascade = this.resolveBoard();
 
     if (this.state.movesRemaining !== null) {
@@ -157,6 +160,7 @@ export class GameSession {
       random: this.random,
       stats: this.state.stats,
       scoreForMatch: (group, combo) => group.cellIds.length * 10 * combo,
+      specialRuntime: this.state.specialMatches,
     });
   }
 

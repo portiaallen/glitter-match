@@ -164,7 +164,9 @@ export interface BoardTopology {
 
 export type Occupant =
   | { type: "empty" }
-  | { type: "icon"; iconId: string };
+  | { type: "icon"; iconId: string }
+  /** Pointer to a board Special Match instance in game state. Not an inventory Special Icon. */
+  | { type: "special-match"; typeId: string; instanceId: string };
 
 export interface ObstacleInstance {
   type: string;
