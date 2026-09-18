@@ -1,37 +1,9 @@
 import type { LandId } from "../ids.js";
 import { issue, throwIfErrors } from "../validation.js";
-
-export interface MechanicState {
-  id: string;
-  payload: Record<string, unknown>;
-}
-
-export interface MechanicActivation {
-  type: "always" | "on-match" | "on-swap" | "on-cascade" | "on-threshold" | "manual";
-  config?: Record<string, unknown>;
-}
-
-export interface MechanicHandler {
-  id: string;
-  landId?: LandId;
-  implemented: boolean;
-  description: string;
-  activation: MechanicActivation;
-  accessibility: {
-    label: string;
-    description: string;
-    nonColorIndicator: string;
-  };
-  /**
-   * Future Land behavior lives here. The engine asks the registry;
-   * it never writes `if (land === ...)`.
-   */
-  apply?(state: MechanicState, event: Record<string, unknown>): MechanicState;
-  serialize?(state: MechanicState): Record<string, unknown>;
-  deserialize?(raw: Record<string, unknown>): MechanicState;
-}
-
-export interface MechanicDefinition extends MechanicHandler {}
+import type { MechanicHandler } from "./contract.js";
+import { createDevEchoMechanic } from "./dev.js";
+import { reservedLandMechanics } from "./placeholders.js";
+import { validateMechanicContract } from "./validate.js";
 
 export class MechanicRegistry {
   private readonly mechanics = new Map<string, MechanicHandler>();
@@ -43,6 +15,7 @@ export class MechanicRegistry {
         "Duplicate mechanic",
       );
     }
+    throwIfErrors(validateMechanicContract(mechanic), `Mechanic "${mechanic.id}" contract is invalid`);
     this.mechanics.set(mechanic.id, mechanic);
   }
 
@@ -69,36 +42,25 @@ export class MechanicRegistry {
   handlersForLand(landId: LandId): MechanicHandler[] {
     return this.list().filter((mechanic) => mechanic.landId === landId);
   }
-}
 
-function reservedLandMechanic(id: string, landId: LandId, description: string): MechanicHandler {
-  return {
-    id,
-    landId,
-    implemented: false,
-    description,
-    activation: { type: "manual" },
-    accessibility: {
-      label: description,
-      description: `${description} is reserved. No gameplay behavior yet.`,
-      nonColorIndicator: id,
-    },
-  };
+  placeholderIds(): string[] {
+    return this.list()
+      .filter((mechanic) => mechanic.status === "reserved")
+      .map((mechanic) => mechanic.id);
+  }
 }
 
 export function createMechanicRegistry(): MechanicRegistry {
   const registry = new MechanicRegistry();
-  for (const mechanic of [
-    reservedLandMechanic("land.lumina", "lumina", "Reserved Lumina handler"),
-    reservedLandMechanic("land.glimmer", "glimmer", "Reserved Glimmer handler"),
-    reservedLandMechanic("land.bloomara", "bloomara", "Reserved Bloomara handler"),
-    reservedLandMechanic("land.transcendia", "transcendia", "Reserved Transcendia handler"),
-    reservedLandMechanic("land.quintara", "quintara", "Reserved Quintara handler"),
-    reservedLandMechanic("land.iridescia", "iridescia", "Reserved Iridescia handler"),
-    reservedLandMechanic("land.aurelia", "aurelia", "Reserved Aurelia handler"),
-    reservedLandMechanic("land.infinity-isles", "infinity-isles", "Reserved Infinity Isles handler"),
-  ]) {
+  for (const mechanic of reservedLandMechanics()) {
     registry.register(mechanic);
   }
+  return registry;
+}
+
+/** Production placeholders plus the development echo harness mechanic. */
+export function createDevelopmentMechanicRegistry(): MechanicRegistry {
+  const registry = createMechanicRegistry();
+  registry.register(createDevEchoMechanic());
   return registry;
 }

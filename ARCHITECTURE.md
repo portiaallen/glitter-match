@@ -61,7 +61,7 @@ Two profiles:
 
 `data/dev/branching-smoke.json` is the only engine-level fixture. It is not a campaign level.
 
-**640 levels are future content. They are not part of this implementation.** See `CONTENT_ARCHITECTURE.md` for Level DNA, difficulty, Rule of Three, packs, Gates, and authoring boundaries.
+**640 levels are future content. They are not part of this implementation.** See `CONTENT_ARCHITECTURE.md` for Level DNA and `LAND_DNA.md` for Land mechanical identities. Land DNA describes vocabulary; it does not define individual puzzles.
 
 ## Icon and Land canon
 
@@ -69,7 +69,7 @@ Ordinary match icons belong to exactly one Land. Each of the eight Lands has a r
 
 The Glitter Icon id is `glitter`, `kind: "glitter"`, `landId: null`.
 
-The eight Lands are fixed in `LAND_IDS` with canonical questions. No additional Lands are allowed. Land mechanic handlers are reserved and unimplemented. The engine must not branch on `land === ...`.
+The eight Lands are fixed in `LAND_IDS` with canonical questions, mechanical verbs, and reserved unimplemented handlers (`land.lumina` … `land.infinity-isles`). No additional Lands are allowed. The engine asks the mechanic registry and collects explicit effects. It must not branch on `land === ...`.
 
 Special Icons are catalogued as universal inventory (`glitter-bomb`, `glitter-hammer`, `prism`, `wild-card`, `magic-swap`, `glitter-lightning`) with `implemented: false`. Using one as a move fails loudly. They are not Special Matches.
 
@@ -195,7 +195,8 @@ Board Lab controls use large hit targets, high-contrast text, focus rings, keybo
 | Rotation Engine | How graph regions transform |
 | Objective System | What the player must accomplish |
 | Obstacle System | What blocks or modifies interaction |
-| Land Mechanic Registry | How future Land mechanics plug in |
+| Land DNA | Mechanical vocabulary of each Land |
+| Land Mechanic Registry | Handler contracts, effects, composition |
 | Level Definition | Data describing a puzzle |
 | Presentation | Animation, sound, camera |
 

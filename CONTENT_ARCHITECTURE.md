@@ -72,7 +72,7 @@ No production secrets are implemented here.
 | Aurelia | What will you protect? |
 | Infinity Isles | What is possible? |
 
-Each Land has an id, display name, question, icon family id, board/mechanic language, progression metadata, accessibility defaults, and a reserved mechanic handler id. **Land mechanics are not implemented.**
+Each Land has full Land DNA: id, slug, name, question, theme, mechanical verbs, board/movement/match/obstacle/objective language, difficulty bias, visual/audio language, accessibility considerations, progression metadata, and an unresolved Level 80 finale reference. **Land DNA defines the language of each Land. It does not define the individual puzzles.** See `LAND_DNA.md`. **Land mechanics are not implemented.**
 
 ## Icon Law
 
@@ -96,11 +96,11 @@ Canonical families (8 icons each) are registered as identity data, not as campai
 
 ## Mechanic registry
 
-Land behavior is a handler: id, optional Land association, activation, serialize/deserialize, accessibility, `implemented`.
+Land behavior is a handler contract: id, Land, version, status, activation, affected state, lifecycle hooks, serialization, determinism, accessibility, difficulty influence, dependencies, conflicts, topology permissions, invariants.
 
-The engine asks the registry. It must not contain `if (land === "lumina")` (or equivalent) in core systems.
+The engine asks the registry, runs declared hooks, and collects explicit effects. It must not contain `if (land === "lumina")` (or equivalent) in core systems.
 
-All eight Land handlers are reserved and unimplemented.
+All eight Land handlers (`land.lumina` … `land.infinity-isles`) are reserved and unimplemented. `dev.echo` exists only for the mechanic test harness.
 
 ## Objectives and obstacles
 

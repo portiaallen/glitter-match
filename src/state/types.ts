@@ -6,6 +6,7 @@ import type { LevelDefinition } from "../levels/index.js";
 import type { GameStats, ObjectiveProgress } from "../objectives/index.js";
 import type { PlayerProgression } from "../progression/index.js";
 import type { RandomSnapshot } from "../random/index.js";
+import type { MechanicState } from "../mechanics/index.js";
 import type { SpecialIconInventory } from "../special-icons/index.js";
 import type { AccessibilitySettings } from "../ui/accessibility.js";
 
@@ -25,6 +26,8 @@ export interface AuthoritativeGameState {
   status: SessionStatus;
   rng: RandomSnapshot;
   seed: string;
+  /** Serializable mechanic instance state. Never hide gameplay state off-session. */
+  mechanicStates: Record<string, MechanicState>;
 }
 
 export interface PresentationState {

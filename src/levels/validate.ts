@@ -8,7 +8,8 @@ import type { IconRegistry } from "../icons/index.js";
 import type { LandRegistry } from "../lands/index.js";
 import type { MatchRuleRegistry } from "../matching/contracts.js";
 import { createMatchRuleRegistry } from "../matching/contracts.js";
-import type { MechanicRegistry } from "../mechanics/index.js";
+import { validateLandDna, type MechanicalVerbRegistry } from "../lands/index.js";
+import { normalizeMechanicBindings, validateMechanicComposition, type MechanicRegistry } from "../mechanics/index.js";
 import { OBJECTIVE_TYPES, type ObjectiveDefinition } from "../objectives/index.js";
 import { createObjectiveRegistry, type ObjectiveRegistry } from "../objectives/registry.js";
 import type { ObstacleRegistry } from "../obstacles/index.js";
@@ -25,6 +26,7 @@ export interface LevelValidationContext {
   mechanics: MechanicRegistry;
   matchContracts?: MatchRuleRegistry;
   objectives?: ObjectiveRegistry;
+  verbs?: MechanicalVerbRegistry;
   profile?: ValidationProfile;
   sourcePath?: string;
 }
@@ -63,6 +65,9 @@ export function validateLevel(level: LevelDefinition, ctx: LevelValidationContex
     issues.push(...validateObjective(extra, `objectives[${index}]`, level, objectives));
   }
   issues.push(...validateObstacles(level, ctx));
+  if (ctx.verbs) {
+    issues.push(...validateLandDna(ctx.lands, ctx.verbs, ctx.mechanics));
+  }
   issues.push(...validateMechanics(level, ctx));
   issues.push(...validateRewards(level));
   issues.push(...validateMatchContracts(level, matchContracts));
@@ -316,24 +321,16 @@ function validateObstacles(level: LevelDefinition, ctx: LevelValidationContext):
 
 function validateMechanics(level: LevelDefinition, ctx: LevelValidationContext): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
-  for (const [index, id] of (level.mechanics ?? []).entries()) {
-    if (!ctx.mechanics.has(id)) {
-      issues.push(issue("mechanic.unknown", `mechanics[${index}]`, `Unknown mechanic "${id}".`));
+  const bindings = normalizeMechanicBindings(level.mechanics);
+  issues.push(...validateMechanicComposition(bindings, ctx.mechanics, level.land));
+  for (const [index, binding] of bindings.entries()) {
+    if (!ctx.mechanics.has(binding.id)) {
       continue;
     }
-    const mechanic = ctx.mechanics.get(id);
-    if (mechanic.landId && mechanic.landId !== level.land) {
-      issues.push(
-        issue(
-          "mechanic.land_mismatch",
-          `mechanics[${index}]`,
-          `Mechanic "${id}" is registered for ${mechanic.landId}, not ${level.land}. Use the registry; do not branch on land in the engine.`,
-        ),
-      );
-    }
+    const mechanic = ctx.mechanics.get(binding.id);
     if (!mechanic.implemented) {
       issues.push(
-        issue("mechanic.unimplemented", `mechanics[${index}]`, `Mechanic "${id}" is not implemented.`),
+        issue("mechanic.unimplemented", `mechanics[${index}]`, `Mechanic "${binding.id}" is not implemented.`),
       );
     }
   }
