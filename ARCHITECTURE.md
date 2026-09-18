@@ -16,13 +16,17 @@ If a later Land wants hex, radial, or organic connectivity, it authors edges. Th
 
 ## Matching is connectivity-first
 
-Default match mode is **cluster**: connected components of compatible icons, size ≥ `minGroupSize`.
+**Matching is graph-authoritative.** Default match mode is **cluster**: connected components of compatible icons, size ≥ `minGroupSize`.
 
-Aligned / L / T / cross modes exist for boards that author **direction labels** on edges. They are optional. Irregular boards are not forced through horizontal/vertical rules.
+Aligned / L / T / cross / path / cycle modes exist for boards that author **direction labels** or opt into topology matchers. They are optional. Irregular boards are not forced through horizontal/vertical rules. Coordinates, rows, columns, and screen distance never decide a match.
 
-**Glitter Icon:** universal wild that may join an ordinary/dev color group. Pure-glitter groups are ignored so we do not invent extra Glitter behavior in this phase.
+See `MATCH_RULES.md` for the Match Rule Registry, pattern framework, overlap policy, and Special Match candidate separation.
 
-**Special Matches** (pattern-created power tiles) are not implemented. They must stay distinct from **Special Icons** (inventory items).
+**Glitter Icon:** universal wild that may join an ordinary/dev color group. Pure-glitter groups are ignored so we do not invent extra Glitter behavior in this phase. Levels cannot invent additional wildcards.
+
+**Special Matches** (pattern-created power tiles) are not implemented. Detected matches may emit **candidate metadata** only. Candidates stay distinct from **Special Icons** (inventory items).
+
+Cascade still calls `detectMatches()` and then resolves/clears. The match pipeline (detect → group → overlap → special-candidate → mark → events) does not mutate the board and is not the cascade engine.
 
 ## Cascade pipeline vs presentation
 
@@ -98,7 +102,7 @@ Accessibility is a contract from day one: pattern+label (not color-only), text s
 
 Preferred extension points:
 
-- Match `modes` and optional direction labels
+- Match `modes` / registered match rules and optional direction labels
 - Obstacle handlers
 - Mechanic registry
 - Movement/refill rules
@@ -191,7 +195,7 @@ Board Lab controls use large hit targets, high-contrast text, focus rings, keybo
 | System | Responsibility |
 |---|---|
 | Board Graph | What exists and what connects |
-| Match Engine | What constitutes a match |
+| Match Engine | What constitutes a match (graph-authoritative rules and patterns) |
 | Cascade Engine | What happens after a match |
 | Flow Engine | How pieces move through the graph |
 | Rotation Engine | How graph regions transform |

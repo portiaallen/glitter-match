@@ -121,7 +121,7 @@ It does not auto-repair conflicts.
 
 - A Land mechanic must not silently alter another Land.
 - Universal Special Icons remain universal inventory. No Land-specific copies.
-- The Glitter Icon remains landless and uses the existing universal-match contract. No new Glitter powers here.
+- The Glitter Icon remains landless and uses the existing universal-match contract. No new Glitter powers here. **Matching is graph-authoritative**; Land DNA does not invent per-Land match geometry from coordinates. Land-specific match rules remain unregistered (`land-registered` is reserved). See `MATCH_RULES.md`.
 
 ## Accessibility
 

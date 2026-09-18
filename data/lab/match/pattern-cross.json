@@ -1,0 +1,25 @@
+{
+  "id": "match.pattern-cross",
+  "status": "development",
+  "purpose": "engine-fixture",
+  "title": "Cross pattern",
+  "notes": "ENGINE TEST FIXTURE ONLY. Four authored compass rays. Not inferred from screen plus-shape.",
+  "topology": { "kind": "custom", "notes": "Four-ray junction." },
+  "cells": [
+    { "id": "c", "position": { "x": 0, "y": 0 }, "initialIcon": "dev.spark-a" },
+    { "id": "n", "position": { "x": 0, "y": -1 }, "initialIcon": "dev.spark-a" },
+    { "id": "e", "position": { "x": 1, "y": 0 }, "initialIcon": "dev.spark-a" },
+    { "id": "s", "position": { "x": 0, "y": 1 }, "initialIcon": "dev.spark-a" },
+    { "id": "w", "position": { "x": -1, "y": 0 }, "initialIcon": "dev.spark-a" }
+  ],
+  "connections": [
+    { "from": "c", "to": "n", "direction": "n" },
+    { "from": "c", "to": "e", "direction": "e" },
+    { "from": "c", "to": "s", "direction": "s" },
+    { "from": "c", "to": "w", "direction": "w" }
+  ],
+  "iconPool": ["dev.spark-a"],
+  "matchRules": { "minGroupSize": 3, "modes": ["cross"] },
+  "placement": { "mode": "authored" },
+  "movement": { "mode": "none", "refill": { "mode": "none" } }
+}

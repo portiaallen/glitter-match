@@ -12,7 +12,7 @@ import {
   type RecoveryResult,
   type SwapMove,
 } from "../fairness/index.js";
-import { detectMatches, type MatchGroup, type MatchRules } from "../matching/index.js";
+import { detectMatches, runMatchResolution, type MatchGroup, type MatchResolution, type MatchRules } from "../matching/index.js";
 import { createEmptyStats, createObjective, type GameStats, type Objective, type ObjectiveDefinition, type ObjectiveProgress } from "../objectives/index.js";
 import type { EngineRegistries } from "../state/session.js";
 import { createRandomSource, type RandomSource } from "../random/index.js";
@@ -94,6 +94,10 @@ export class BoardPlayground {
 
   matches(): MatchGroup[] {
     return detectMatches(this.board, this.matchRules, this.registries.icons);
+  }
+
+  matchResolution(): MatchResolution {
+    return runMatchResolution(this.board, this.matchRules, this.registries.icons);
   }
 
   isDead(): boolean {

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MATCH_MODES } from "../matching/types.js";
+import { DEFAULT_MATCH_MODES } from "../matching/types.js";
 import { OBJECTIVE_TYPES, type ObjectiveDefinition } from "../objectives/model.js";
 import { throwIfErrors } from "../validation.js";
 import {
@@ -100,7 +100,7 @@ export function parseBoardDocument(input: unknown): BoardDocument {
 }
 
 export function defaultLabMatchRules(): MatchRules {
-  return { minGroupSize: 3, modes: [...MATCH_MODES] };
+  return { minGroupSize: 3, modes: [...DEFAULT_MATCH_MODES] };
 }
 
 export function compileBoardDocument(document: BoardDocument): BoardDefinition {

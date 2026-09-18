@@ -8,6 +8,7 @@ import type { IconRegistry } from "../icons/index.js";
 import type { LandRegistry } from "../lands/index.js";
 import type { MatchRuleRegistry } from "../matching/contracts.js";
 import { createMatchRuleRegistry } from "../matching/contracts.js";
+import { getDefaultMatchEngine } from "../matching/pipeline.js";
 import { validateLandDna, type MechanicalVerbRegistry } from "../lands/index.js";
 import { normalizeMechanicBindings, validateMechanicComposition, type MechanicRegistry } from "../mechanics/index.js";
 import { OBJECTIVE_TYPES, type ObjectiveDefinition } from "../objectives/index.js";
@@ -71,6 +72,7 @@ export function validateLevel(level: LevelDefinition, ctx: LevelValidationContex
   issues.push(...validateMechanics(level, ctx));
   issues.push(...validateRewards(level));
   issues.push(...validateMatchContracts(level, matchContracts));
+  issues.push(...validateMatchEngineRuleIds(level));
   issues.push(...validateMovementModel(level));
   issues.push(...validateDifficulty(level, profile));
   issues.push(...validateRuleOfThree(level, profile));
@@ -346,6 +348,17 @@ function validateRewards(level: LevelDefinition): ValidationIssue[] {
     }
     if (reward.kind === "special-icon" && reward.id && !isSpecialIconId(reward.id)) {
       issues.push(issue("reward.unknown_special", `rewards[${index}]`, `Unknown special icon reward "${reward.id}".`));
+    }
+  }
+  return issues;
+}
+
+function validateMatchEngineRuleIds(level: LevelDefinition): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const engine = getDefaultMatchEngine();
+  for (const [index, id] of (level.matchRules.ruleIds ?? []).entries()) {
+    if (!engine.rules.has(id)) {
+      issues.push(issue("match.unknown_rule", `matchRules.ruleIds[${index}]`, `Unknown match rule "${id}". Register it before referencing it.`));
     }
   }
   return issues;
