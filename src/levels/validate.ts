@@ -11,7 +11,7 @@ import { createMatchRuleRegistry } from "../matching/contracts.js";
 import { getDefaultMatchEngine } from "../matching/pipeline.js";
 import { validateLandDna, type MechanicalVerbRegistry } from "../lands/index.js";
 import { normalizeMechanicBindings, validateMechanicComposition, type MechanicRegistry } from "../mechanics/index.js";
-import { OBJECTIVE_TYPES, type ObjectiveDefinition } from "../objectives/index.js";
+import { OBJECTIVE_TYPES, validateObjectiveForest, type ObjectiveDefinition } from "../objectives/index.js";
 import { createObjectiveRegistry, type ObjectiveRegistry } from "../objectives/registry.js";
 import type { ObstacleRegistry } from "../obstacles/index.js";
 import { isSpecialIconId } from "../special-icons/index.js";
@@ -65,6 +65,12 @@ export function validateLevel(level: LevelDefinition, ctx: LevelValidationContex
   for (const [index, extra] of (level.objectives ?? []).entries()) {
     issues.push(...validateObjective(extra, `objectives[${index}]`, level, objectives));
   }
+  issues.push(
+    ...validateObjectiveForest(
+      [level.objective, ...(level.objectives ?? [])],
+      level.winState,
+    ),
+  );
   issues.push(...validateObstacles(level, ctx));
   if (ctx.verbs) {
     issues.push(...validateLandDna(ctx.lands, ctx.verbs, ctx.mechanics));
@@ -114,7 +120,7 @@ export function toBoardDefinition(level: LevelDefinition): BoardDefinition {
 }
 
 export function isLaboratoryFixtureId(id: string): boolean {
-  return id.startsWith("lab.") || id.startsWith("lab/") || id.startsWith("special.");
+  return id.startsWith("lab.") || id.startsWith("lab/") || id.startsWith("special.") || id.startsWith("objective.") || id.startsWith("progression.") || id.startsWith("dev.level.") || id.startsWith("dev.pack.") || id.startsWith("dev.universe");
 }
 
 function validateDevFixturePolicy(

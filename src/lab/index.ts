@@ -6,6 +6,8 @@ export {
   labActivateSpecial,
   type SpecialMatchInspection,
 } from "../special-matches/inspect.js";
+export { inspectProgression } from "../progression/inspect.js";
+export { inspectLevelRuntime, formatRuntimeInspect } from "../runtime/inspect.js";
 export {
   inspectPrimitiveOnBoard,
   LAB_PRIMITIVE_RECIPES,

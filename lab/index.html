@@ -32,6 +32,9 @@
         <h2>Special Match fixtures</h2>
         <p class="hint">Engine tests only. Not campaign content. Not inventory Special Icons.</p>
         <ul id="special-fixture-list"></ul>
+        <h2>Objective fixtures</h2>
+        <p class="hint">Engine tests only. Not campaign levels.</p>
+        <ul id="objective-fixture-list"></ul>
       </nav>
       <main id="board" class="stage">
         <svg id="canvas" role="img" aria-label="Board topology visualization"></svg>
@@ -106,6 +109,43 @@
             <button type="button" id="special-replay">Replay tape</button>
           </div>
           <pre id="special-out" role="status"></pre>
+        </section>
+        <section id="objective-panel">
+          <h3>Objectives</h3>
+          <p class="hint">Engine inspect only. Win state is not mastery and does not grant currency.</p>
+          <div class="actions">
+            <button type="button" id="objective-inspect">Inspect objectives</button>
+            <button type="button" id="objective-serialize">Serialize objective state</button>
+          </div>
+          <pre id="objective-engine-out" role="status"></pre>
+        </section>
+        <section id="progression-panel">
+          <h3>Progression</h3>
+          <p class="hint">Engine inspect only. Development universe fixture — not a campaign, not Level 1, not rewards or story.</p>
+          <label class="field">Fixture node
+            <select id="progression-node" aria-label="Progression fixture node"></select>
+          </label>
+          <div class="actions">
+            <button type="button" id="progression-inspect">Inspect progression</button>
+            <button type="button" id="progression-complete">Simulate complete</button>
+            <button type="button" id="progression-fail">Simulate fail</button>
+            <button type="button" id="progression-master">Simulate mastery</button>
+            <button type="button" id="progression-serialize">Serialize / restore</button>
+          </div>
+          <pre id="progression-out" role="status"></pre>
+        </section>
+        <section id="runtime-panel">
+          <h3>Level Runtime</h3>
+          <p class="hint">Developer harness only. Loads the current engine fixture into LevelRuntime. Not a production level, not campaign content.</p>
+          <div class="actions">
+            <button type="button" id="runtime-load">Load runtime</button>
+            <button type="button" id="runtime-move">Submit selected move</button>
+            <button type="button" id="runtime-inspect">Inspect runtime</button>
+            <button type="button" id="runtime-snapshot">Snapshot</button>
+            <button type="button" id="runtime-restore">Restore</button>
+            <button type="button" id="runtime-replay">Replay tape</button>
+          </div>
+          <pre id="runtime-out" role="status"></pre>
         </section>
         <div class="actions">
           <button type="button" id="resolve">Resolve matches</button>

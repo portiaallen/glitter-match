@@ -30,3 +30,4 @@ export * from "./gates/contract.js";
 export * from "./universe/references.js";
 export * from "./primitives/index.js";
 export * from "./special-matches/index.js";
+export * from "./runtime/index.js";

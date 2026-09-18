@@ -1,0 +1,7 @@
+{
+  "purpose": "engine-fixture",
+  "notes": "ENGINE TEST FIXTURE ONLY. Not a campaign, not Level 1, not 640 levels, not a Land finale.",
+  "universeId": "dev.universe",
+  "packId": "dev.pack.progression",
+  "landId": "lumina"
+}

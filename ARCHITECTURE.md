@@ -82,13 +82,13 @@ Special Icons are catalogued as universal inventory (`glitter-bomb`, `glitter-ha
 
 ## Objectives and obstacles
 
-Objectives evaluate `GameStats` and board occupancy. They do not read sprites, tweens, or DOM.
+Objectives are registered handlers (collection, clearing, path, score, combo, precision, survival, pattern, discovery, multi-stage, hybrid). They evaluate authoritative `GameStats`, events, and board occupancy. They do not read sprites, tweens, or DOM. A dedicated Win-State Resolver turns required/optional/mastery objective statuses into `IN_PROGRESS` / `COMPLETED` / `FAILED` using explicit completion, failure, and conflict policies. See `OBJECTIVE_ENGINE.md`. Completion is not mastery and does not grant currency.
 
 Obstacles are handlers registered by type. The board stores instances (`type`, `durability`, `config`). Implemented now: `lock`, `ice`. Reserved types fail validation until implemented so levels cannot smuggle unimplemented content.
 
 ## Authoritative state vs presentation
 
-`AuthoritativeGameState` is the session. `PresentationState` holds selection, highlights, pending cascade steps, and accessibility settings.
+`AuthoritativeGameState` is the session. `PresentationState` holds selection, highlights, pending cascade steps, and accessibility settings. `PlayerProgression` is save data: it must not be written back into level JSON. See `PROGRESSION_ENGINE.md`.
 
 Accessibility is a contract from day one: pattern+label (not color-only), text scale, reduced motion, large hit targets, audio/haptics controls. No full settings UI yet.
 
@@ -203,14 +203,61 @@ Board Lab controls use large hit targets, high-contrast text, focus rings, keybo
 | Cascade Engine | What happens after a match, including specials |
 | Flow Engine | How pieces move through the graph |
 | Rotation Engine | How graph regions transform |
-| Objective System | What the player must accomplish |
+| Objective Engine | What the player must accomplish (registered handlers + state) |
+| Win-State Resolver | Whether the level is IN_PROGRESS / COMPLETED / FAILED |
+| Progression Engine | Level availability, attempts, completion, mastery, unlocks, aggregates |
 | Obstacle System | What blocks or modifies interaction |
 | Land DNA | Mechanical vocabulary of each Land |
 | Land Mechanic Registry | Handler contracts, effects, composition |
 | Mechanic Primitives | Reusable Land-neutral building blocks |
 | Level Definition | Data describing a puzzle |
+| Level Runtime | Session orchestration: lifecycle, move pipeline, transactions, events |
 | Presentation | Animation, sound, camera |
 
 No gameplay-critical behavior depends on UI animation.
+
+## Level Runtime Architecture
+
+`LevelRuntime` is the conductor for one active level session. It does not become another game engine. Existing systems keep their responsibilities:
+
+```
+BOARD GRAPH → MOVEMENT → MATCH ENGINE → SPECIAL MATCH ENGINE
+    → EFFECT SYSTEM → CASCADE ENGINE → OBJECTIVE ENGINE
+    → WIN-STATE RESOLVER → PROGRESSION ENGINE
+```
+
+The runtime owns sequencing, lifecycle, transaction boundaries, event ordering, and integration. It calls `canAttemptSwap`, `runCascade`, `ingestCascade` / `evaluateRuntime`, and — only when a `ProgressionRuntime` is attached — `startAttempt` / `completeAttempt` / `failAttempt`. It never walks x/y for adjacency, never implements 3+ / L / T detection, never evaluates unlock graphs, and never treats completion as mastery.
+
+### Lifecycle
+
+`UNINITIALIZED → LOADING → READY → AWAITING_MOVE → RESOLVING_MOVE → RESOLVING_MATCHES → RESOLVING_SPECIALS → RESOLVING_CASCADE → EVALUATING_OBJECTIVES → EVALUATING_OUTCOME → AWAITING_MOVE | COMPLETE | FAILED`
+
+Additional terminal states: `DEAD_UNRECOVERED` (existing fairness failure) and `ERROR` (load failure after entering LOADING). Invalid operations are rejected from the current state. A second move cannot start while resolving.
+
+### Move pipeline
+
+A legal move snapshots committed gameplay state, applies the graph-authoritative swap, then asks the Match Engine whether the swap created a match. The existing `swap.requireMatch` contract decides no-match behavior (`reject-revert` vs `commit`). Authoritative resolution then goes through `runCascade` (match → specials → effects → settle → refill → repeat). After the board is stable, the Objective Engine and Win-State Resolver run. Move limits are evaluated there, not hardcoded in the runtime. Progression is notified only if attached.
+
+### Transaction boundary
+
+The snapshot includes board, occupants, topology, Special Match runtime, objectives, stats, move count, RNG, attempt, replay tape, and runtime lifecycle. An unrecoverable engine error restores that snapshot and returns `ENGINE_RESOLUTION_ERROR`. Illegal and no-match (reject) paths never commit. There is no second transaction system — this is the session boundary around existing engines.
+
+### Events, replay, snapshot
+
+Runtime events use a monotonic `eventSequence` (not wall-clock time). Replay stores level id, content version, seed, initial state hash, and the existing `ReplayTape` move sequence. `snapshot()` / `restore()` reproduce gameplay-relevant state including RNG. `stateHash()` is a canonical gameplay fingerprint for tests and replay verification.
+
+### Progression integration
+
+When a `ProgressionRuntime` is attached, session start/complete/fail call Progression APIs. Unlock evaluation stays inside Progression. Legacy `GameSession` is a facade over `LevelRuntime` so there is one play path. `recordLevelClear` remains a compatibility write for the old player blob.
+
+### Board Lab
+
+The Runtime panel loads the current development fixture through `developmentLevelFromBoardDocument` (not a production level), submits graph-authoritative moves, and inspects lifecycle, matches, specials, cascades, objectives, outcome, progression events, hash, snapshot/restore, and replay.
+
+### Intentionally deferred
+
+Inventory Special Icons, production campaign content, Land-specific mechanics, online replay, and presentation/animation remain outside this runtime.
+
+See `LEVEL_RUNTIME.md`.
 
 

@@ -5,6 +5,38 @@ import { startPlayground, type BoardPlayground } from "../src/lab/playground.js"
 import { replayTape, occupantSnapshot } from "../src/replay/index.js";
 import lineCreate from "../data/lab/special/line-create.json";
 import adjacentTrigger from "../data/lab/special/adjacent-trigger.json";
+import objectiveCollection from "../data/lab/objectives/collection.json";
+import objectiveClearing from "../data/lab/objectives/clearing.json";
+import objectiveScore from "../data/lab/objectives/score.json";
+import objectivePath from "../data/lab/objectives/path.json";
+import objectivePattern from "../data/lab/objectives/pattern.json";
+import objectiveCombo from "../data/lab/objectives/combo.json";
+import objectiveSurvival from "../data/lab/objectives/survival.json";
+import objectiveStaged from "../data/lab/objectives/staged.json";
+import objectiveAnd from "../data/lab/objectives/and.json";
+import objectiveOr from "../data/lab/objectives/or.json";
+import objectiveSequence from "../data/lab/objectives/sequence.json";
+import objectiveFailure from "../data/lab/objectives/failure.json";
+import {
+  DEV_PROGRESSION_CATALOG,
+  DEV_PROGRESSION_UNIVERSE,
+  createProgressionRuntime,
+  failAttempt,
+  inspectProgression,
+  restoreProgression,
+  serializeProgression,
+  simulateCompletion,
+  startAttempt,
+  type ProgressionRuntime,
+} from "../src/progression/index.js";
+import {
+  developmentLevelFromBoardDocument,
+  formatRuntimeInspect,
+  loadLevelRuntime,
+  replayLevelRuntime,
+  type LevelRuntime,
+  type RuntimeSnapshot,
+} from "../src/runtime/index.js";
 import { GraphAuthoringSession } from "../src/lab/authoring.js";
 import { createDevelopmentPack } from "../src/content/packs.js";
 import diamond from "../data/lab/diamond.json";
@@ -21,6 +53,20 @@ const FIXTURES = [diamond, heart, ring, spiral, twin, islands, cascade, dead, se
   parseBoardDocument(raw),
 );
 const SPECIAL_FIXTURES = [lineCreate, adjacentTrigger].map((raw) => parseBoardDocument(raw));
+const OBJECTIVE_FIXTURES = [
+  objectiveCollection,
+  objectiveClearing,
+  objectiveScore,
+  objectivePath,
+  objectivePattern,
+  objectiveCombo,
+  objectiveSurvival,
+  objectiveStaged,
+  objectiveAnd,
+  objectiveOr,
+  objectiveSequence,
+  objectiveFailure,
+].map((raw) => parseBoardDocument(raw));
 const pack = createDevelopmentPack();
 const SCALE = 56;
 const RADIUS = 22;
@@ -69,15 +115,24 @@ const primitiveRecipe = document.querySelector("#primitive-recipe") as HTMLSelec
 const primitiveOut = document.querySelector("#primitive-out") as HTMLElement;
 const specialOut = document.querySelector("#special-out") as HTMLElement;
 const specialFixtureList = document.querySelector("#special-fixture-list") as HTMLUListElement;
+const objectiveFixtureList = document.querySelector("#objective-fixture-list") as HTMLUListElement;
+const objectiveEngineOut = document.querySelector("#objective-engine-out") as HTMLElement;
+const progressionOut = document.querySelector("#progression-out") as HTMLElement;
+const progressionNode = document.querySelector("#progression-node") as HTMLSelectElement;
+const runtimeOut = document.querySelector("#runtime-out") as HTMLElement;
 
+let primitiveRuntime: PrimitiveRuntime | null = null;
+let levelRuntime: LevelRuntime | null = null;
+let runtimeSnapshot: RuntimeSnapshot | null = null;
+let primitiveSelection: string[] = [];
 let current = FIXTURES[0]!;
 let playground = load(current);
 let author = GraphAuthoringSession.fromDocument(current);
 let selected: string[] = [];
 let mode: "play" | "author" = "play";
 let drag: { id: string } | null = null;
-let primitiveRuntime: PrimitiveRuntime | null = null;
-let primitiveSelection: string[] = [];
+let progressionRuntime: ProgressionRuntime = createProgressionRuntime(DEV_PROGRESSION_UNIVERSE, DEV_PROGRESSION_CATALOG);
+let savedProgression = serializeProgression(progressionRuntime);
 
 function load(document: BoardDocument): BoardPlayground {
   primitiveRuntime = null;
@@ -382,6 +437,12 @@ function render(): void {
       specialOut.textContent = formatSpecialInspect();
     }
     objectiveEl.textContent = inspection.objective ? JSON.stringify(inspection.objective, null, 2) : "(no demo objective on this fixture)";
+    if (objectiveEngineOut) {
+      objectiveEngineOut.textContent = formatObjectiveInspect();
+    }
+    if (progressionOut) {
+      progressionOut.textContent = formatProgressionInspect();
+    }
     notesEl.textContent = current.notes ?? "";
     statusEl.textContent = `${current.title} · ${inspection.cellIds.length} cells · topology ${inspection.topologyKind} · graph, not a grid`;
   } else {
@@ -549,11 +610,77 @@ function mountFixtureButtons(host: HTMLUListElement, fixtures: typeof FIXTURES):
   }
 }
 
+function formatProgressionInspect(): string {
+  const focus = progressionNode?.value || "dev.level.root";
+  const inspection = inspectProgression(progressionRuntime, focus);
+  const focused = inspection.levels[focus];
+  return [
+    `UNIVERSE: ${inspection.universeId} (${inspection.purpose})`,
+    focused?.explanation ?? "Select a fixture node.",
+    `PACK complete: ${inspection.campaign.packs[0]?.complete}`,
+    `LAND complete: ${inspection.campaign.lands[0]?.complete} finaleEligible=${inspection.campaign.lands[0]?.finaleEligible}`,
+    `CAMPAIGN ratio: ${inspection.campaign.completionRatio.toFixed(2)}`,
+    focused?.accessibility.nonColorIndicator,
+    ...inspection.events.slice(-6).map((event) => `${event.kind} ${event.levelId ?? ""}`.trim()),
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+function mountProgressionNodes(): void {
+  if (!progressionNode) {
+    return;
+  }
+  progressionNode.replaceChildren();
+  for (const item of DEV_PROGRESSION_CATALOG) {
+    const option = document.createElement("option");
+    option.value = item.id;
+    option.textContent = item.id;
+    progressionNode.append(option);
+  }
+}
+
+function bootLevelRuntime(): LevelRuntime {
+  return loadLevelRuntime({
+    level: developmentLevelFromBoardDocument(current),
+    registries: pack,
+    seed: seedInput.value || "lab-seed",
+    validation: { ...pack, profile: "development" },
+    progressionRuntime,
+    trace: true,
+  });
+}
+
+function writeRuntimeOut(text: string): void {
+  if (runtimeOut) {
+    runtimeOut.textContent = text;
+  }
+}
+
+function formatObjectiveInspect(): string {
+  if (isAuthor()) {
+    return "Switch to Play / inspect to inspect objectives.";
+  }
+  const inspection = playground.inspectObjectives();
+  if (!inspection) {
+    return "This fixture has no demo objective. Load an Objective fixture.";
+  }
+  return [
+    inspection.win,
+    ...inspection.explanations,
+    ...inspection.accessibility.map((item) => item.progressText),
+  ].join("\n\n");
+}
+
 function mountList(): void {
   mountFixtureButtons(fixtureList, FIXTURES);
   if (specialFixtureList) {
     mountFixtureButtons(specialFixtureList, SPECIAL_FIXTURES);
   }
+  if (objectiveFixtureList) {
+    mountFixtureButtons(objectiveFixtureList, OBJECTIVE_FIXTURES);
+  }
+  mountProgressionNodes();
 }
 
 canvas.addEventListener("click", (event) => {
@@ -632,6 +759,169 @@ document.querySelector("#special-serialize")?.addEventListener("click", () => {
     specialOut.textContent = inspection.serialized;
   }
   statusEl.textContent = "Serialized Special Match state.";
+});
+document.querySelector("#objective-inspect")?.addEventListener("click", () => {
+  if (objectiveEngineOut) {
+    objectiveEngineOut.textContent = formatObjectiveInspect();
+  }
+  statusEl.textContent = "Objective inspection refreshed.";
+});
+document.querySelector("#objective-serialize")?.addEventListener("click", () => {
+  if (isAuthor()) {
+    if (objectiveEngineOut) {
+      objectiveEngineOut.textContent = "Switch to Play / inspect to serialize objectives.";
+    }
+    return;
+  }
+  const inspection = playground.inspectObjectives();
+  if (objectiveEngineOut) {
+    objectiveEngineOut.textContent = inspection?.serialized ?? "This fixture has no demo objective.";
+  }
+  statusEl.textContent = "Serialized objective state.";
+});
+document.querySelector("#progression-inspect")?.addEventListener("click", () => {
+  if (progressionOut) {
+    progressionOut.textContent = formatProgressionInspect();
+  }
+  statusEl.textContent = "Progression inspection refreshed.";
+});
+document.querySelector("#progression-complete")?.addEventListener("click", () => {
+  const id = progressionNode?.value || "dev.level.root";
+  try {
+    simulateCompletion(progressionRuntime, id, { score: 20, moveCount: 4 });
+    if (progressionOut) {
+      progressionOut.textContent = formatProgressionInspect();
+    }
+    statusEl.textContent = `Simulated completion of ${id}. No rewards granted.`;
+  } catch (error) {
+    if (progressionOut) {
+      progressionOut.textContent = error instanceof Error ? error.message : String(error);
+    }
+  }
+});
+document.querySelector("#progression-fail")?.addEventListener("click", () => {
+  const id = progressionNode?.value || "dev.level.root";
+  try {
+    const attempt = startAttempt(progressionRuntime, id, "lab-seed");
+    failAttempt(progressionRuntime, attempt.attemptId, { score: 0, moveCount: 1 });
+    if (progressionOut) {
+      progressionOut.textContent = formatProgressionInspect();
+    }
+    statusEl.textContent = `Simulated failure of ${id}.`;
+  } catch (error) {
+    if (progressionOut) {
+      progressionOut.textContent = error instanceof Error ? error.message : String(error);
+    }
+  }
+});
+document.querySelector("#progression-master")?.addEventListener("click", () => {
+  const id = progressionNode?.value || "dev.level.root";
+  try {
+    simulateCompletion(progressionRuntime, id, { score: 50, moveCount: 2, mastered: true });
+    if (progressionOut) {
+      progressionOut.textContent = formatProgressionInspect();
+    }
+    statusEl.textContent = `Simulated mastery of ${id}. Mastery is not completion rewards.`;
+  } catch (error) {
+    if (progressionOut) {
+      progressionOut.textContent = error instanceof Error ? error.message : String(error);
+    }
+  }
+});
+document.querySelector("#progression-serialize")?.addEventListener("click", () => {
+  savedProgression = serializeProgression(progressionRuntime);
+  progressionRuntime = restoreProgression(DEV_PROGRESSION_UNIVERSE, DEV_PROGRESSION_CATALOG, savedProgression);
+  if (progressionOut) {
+    progressionOut.textContent = JSON.stringify(savedProgression, null, 2);
+  }
+  statusEl.textContent = "Serialized and restored progression state.";
+});
+document.querySelector("#runtime-load")?.addEventListener("click", () => {
+  try {
+    levelRuntime = bootLevelRuntime();
+    runtimeSnapshot = null;
+    writeRuntimeOut(formatRuntimeInspect(levelRuntime));
+    statusEl.textContent = `Loaded LevelRuntime for ${current.id}. Development fixture only.`;
+  } catch (error) {
+    writeRuntimeOut(error instanceof Error ? error.message : String(error));
+    statusEl.textContent = "Runtime load failed.";
+  }
+});
+document.querySelector("#runtime-inspect")?.addEventListener("click", () => {
+  if (!levelRuntime) {
+    writeRuntimeOut("Load a runtime first.");
+    return;
+  }
+  writeRuntimeOut(formatRuntimeInspect(levelRuntime));
+  statusEl.textContent = "Runtime inspection refreshed.";
+});
+document.querySelector("#runtime-move")?.addEventListener("click", () => {
+  if (!levelRuntime) {
+    writeRuntimeOut("Load a runtime first.");
+    return;
+  }
+  if (selected.length < 2) {
+    writeRuntimeOut("Select two cells. The runtime asks the graph, not x/y distance.");
+    return;
+  }
+  const result = levelRuntime.submitMove({ sourceCellId: selected[0]!, targetCellId: selected[1]! });
+  writeRuntimeOut(
+    [
+      formatRuntimeInspect(levelRuntime),
+      "",
+      result.accepted ? `MOVE_ACCEPTED turn ${result.turnNumber}` : `${result.rejection?.code ?? result.error?.code}: ${result.rejection?.reason ?? result.error?.message}`,
+      `matches: ${result.matches.length} specials+:${result.specialMatchesCreated.length} activated:${result.specialMatchesActivated.length} cascades:${result.cascadeCount}`,
+      `outcome: ${result.outcome?.state ?? "n/a"}`,
+      ...result.trace.map((step) => `  ${step.stage}${step.detail ? ` — ${step.detail}` : ""}`),
+    ].join("\n"),
+  );
+  statusEl.textContent = result.accepted ? `Runtime committed turn ${result.turnNumber}.` : "Runtime rejected the move.";
+});
+document.querySelector("#runtime-snapshot")?.addEventListener("click", () => {
+  if (!levelRuntime) {
+    writeRuntimeOut("Load a runtime first.");
+    return;
+  }
+  runtimeSnapshot = levelRuntime.snapshot();
+  writeRuntimeOut(`Snapshot stored. hash=${runtimeSnapshot.gameplay.stateHash.slice(0, 64)}…`);
+  statusEl.textContent = "Runtime snapshot captured.";
+});
+document.querySelector("#runtime-restore")?.addEventListener("click", () => {
+  if (!levelRuntime || !runtimeSnapshot) {
+    writeRuntimeOut("Load a runtime and take a snapshot first.");
+    return;
+  }
+  levelRuntime.restore(runtimeSnapshot);
+  writeRuntimeOut(formatRuntimeInspect(levelRuntime));
+  statusEl.textContent = "Runtime snapshot restored.";
+});
+document.querySelector("#runtime-replay")?.addEventListener("click", () => {
+  if (!levelRuntime) {
+    writeRuntimeOut("Load a runtime first.");
+    return;
+  }
+  try {
+    const replayed = replayLevelRuntime(
+      {
+        level: developmentLevelFromBoardDocument(current),
+        registries: pack,
+        seed: levelRuntime.seed,
+        validation: { ...pack, profile: "development" },
+        trace: true,
+      },
+      levelRuntime.replay,
+    );
+    writeRuntimeOut(
+      [
+        formatRuntimeInspect(replayed),
+        `original hash match: ${replayed.stateHash() === levelRuntime.stateHash()}`,
+      ].join("\n"),
+    );
+    statusEl.textContent = "Runtime replay finished.";
+  } catch (error) {
+    writeRuntimeOut(error instanceof Error ? error.message : String(error));
+    statusEl.textContent = "Runtime replay failed.";
+  }
 });
 document.querySelector("#special-replay")?.addEventListener("click", () => {
   if (isAuthor()) {

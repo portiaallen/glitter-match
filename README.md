@@ -2,7 +2,7 @@
 
 Glitter Match is an unconventional match-puzzle game in the Glitter Universe. The board is a **graph of playable cells**, not a rectangular matrix. Board shape and topology are part of the puzzle.
 
-This repository currently contains the **engine, Board Laboratory, content-architecture contracts, Land DNA, mechanic primitives, match rules, and the Special Match engine**. There is no campaign. **640 levels are future content and are not part of this implementation.**
+This repository currently contains the **engine, Board Laboratory, content-architecture contracts, Land DNA, mechanic primitives, match rules, Special Match engine, Objective & Win-State engine, Progression & Level-State engine, and Level Runtime / session orchestrator**. There is no campaign. **640 levels are future content and are not part of this implementation.**
 
 Core philosophy: *Simple to understand. Difficult to master. Impossible to completely predict.*
 
@@ -41,12 +41,14 @@ src/
   gates/          Future Gate reference contract
   universe/       Sanctuary / Museum / Personal Story references
   obstacles/      Obstacle handlers
-  objectives/     Objective framework
+  objectives/     Objective Registry, handlers, win-state resolver
+  progression/    Universe/pack/level progress, unlocks, attempts
   special-icons/  Universal Special Icon inventory (not Special Matches)
   economy/        Reward definitions
   progression/    Player unlock/completion state
   mechanics/      Land mechanic contracts (placeholders unimplemented)
   primitives/     Reusable Land-neutral gameplay primitives
+  runtime/        Level Runtime — session orchestrator (not a second engine)
   levels/         Zod schema + validation
   state/          Authoritative session vs presentation state
   ui/             Accessibility + presentation contracts
@@ -57,9 +59,13 @@ src/
 data/dev/         Development-only level fixture (not campaign content)
 data/lab/         Board Laboratory topology fixtures (not levels)
 data/lab/match/   Match-engine test fixtures (not levels, not in the visual catalog)
+data/lab/objectives/ Objective-engine fixtures (not levels, not campaign content)
 LAND_DNA.md       Eight Land mechanical identities (not puzzles)
 MATCH_RULES.md    Match Rule & Pattern Engine (graph-authoritative)
 SPECIAL_MATCH_ENGINE.md  Board Special Matches (not inventory Special Icons)
+OBJECTIVE_ENGINE.md  Objective Registry + Win-State Resolver (not levels)
+PROGRESSION_ENGINE.md Progression & Level-State (not the campaign)
+LEVEL_RUNTIME.md  Session orchestrator (not a second gameplay engine)
 MECHANIC_PRIMITIVES.md  Reusable engine primitives (not Land mechanics)
 lab/              Developer Board Laboratory visualizer + authoring helper
 tests/            Engine tests (no UI)
@@ -93,6 +99,8 @@ const level = loadAndValidateLevel(json, { ...pack, profile: "development" });
 const session = startLevel({ level, registries: pack, seed: "my-seed" });
 session.swap("hub", "left");
 ```
+
+Prefer `loadLevelRuntime` when you need lifecycle, turn results, snapshot/restore, or an attached `ProgressionRuntime`. `GameSession` is a compatibility facade over that runtime. See `LEVEL_RUNTIME.md`.
 
 ## How tests are run
 
@@ -128,6 +136,12 @@ Click two cells to see why they can or cannot interact (graph edges, not x±1/y�
 Play / inspect can trigger **mechanic primitive recipes** on the current fixture (disable edge, lock, swap, pair, region, path, threshold). That inspects reusable engine blocks. It is not a campaign editor and not a Land mechanic.
 
 The **Special Match** panel inspects candidates, created board specials, activation, effects, cascade steps, serialization, and replay. Those are board Special Matches created by matching — not inventory Special Icons. Fixtures under `data/lab/special/` are engine tests only.
+
+The **Objectives** panel inspects engine-test objective fixtures, progress, win-state explanations, failure, dependencies, serialization, and replay. Completion is not mastery and does not grant currency. Fixtures under `data/lab/objectives/` are engine tests only.
+
+The **Progression** panel inspects a development-only universe: availability, unlock explanations, simulated complete/fail/mastery, pack/land/campaign aggregates, and serialize/restore. It is not a campaign map and does not grant rewards.
+
+The **Runtime** panel loads the current development fixture into `LevelRuntime`, submits graph-authoritative moves, and inspects lifecycle, matches, Special Matches, cascades, objectives, win/failure, progression events, seed/hash, snapshot/restore, and replay. Fixtures stay development fixtures — they are not production levels.
 
 ## How to author an irregular board
 
