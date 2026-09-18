@@ -9,3 +9,9 @@ export {
   type ObjectiveProgress,
   type ObjectiveType,
 } from "./model.js";
+export {
+  createObjectiveRegistry,
+  OBJECTIVE_CATALOG,
+  ObjectiveRegistry,
+  type ObjectiveTypeSpec,
+} from "./registry.js";

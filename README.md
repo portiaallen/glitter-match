@@ -2,7 +2,7 @@
 
 Glitter Match is an unconventional match-puzzle game in the Glitter Universe. The board is a **graph of playable cells**, not a rectangular matrix. Board shape and topology are part of the puzzle.
 
-This repository currently contains the **engine and authoring foundation only**. There is no campaign, no production icon library, and no 640-level content.
+This repository currently contains the **engine, Board Laboratory, and content-architecture contracts**. There is no campaign. **640 levels are future content and are not part of this implementation.**
 
 Core philosophy: *Simple to understand. Difficult to master. Impossible to completely predict.*
 
@@ -18,7 +18,7 @@ Visual positions are presentation/authoring information. Graph connectivity is g
 - **Testable.** Cascade resolution, matching, and fairness run with no renderer.
 - **Deterministic when seeded.** Gameplay RNG is `SeededRandom`. `Math.random()` is not used for board logic.
 - **Fair.** Dead boards are detected and can be recovered. Special Icons are inventory assistance, not required clear conditions.
-- **No premature content.** Production Lands exist as empty registries. One development fixture exists only to verify the engine.
+- **No premature campaign.** Canonical Lands and icon families are registered as identity data. One development fixture exists only to verify the engine. See `CONTENT_ARCHITECTURE.md`.
 
 ## Project structure
 
@@ -31,14 +31,20 @@ src/
   fairness/       Valid moves, dead boards, recovery
   solvability/    Legal-move simulation, bounded objective search
   replay/         Deterministic seed + move tapes
-  icons/          Icon registry, Glitter Icon identity
-  lands/          Eight Land registry (identities only)
+  icons/          Icon registry, Glitter Icon identity, Icon Law
+  lands/          Eight Land registry (questions + family refs)
+  dna/            Rule of Three, pacing, movement model
+  difficulty/     Thirteen-axis difficulty (not easy/medium/hard)
+  twists/         Optional twist contracts
+  secrets/        Optional discovery/secret references
+  gates/          Future Gate reference contract
+  universe/       Sanctuary / Museum / Personal Story references
   obstacles/      Obstacle handlers
   objectives/     Objective framework
   special-icons/  Universal Special Icon inventory (not Special Matches)
   economy/        Reward definitions
   progression/    Player unlock/completion state
-  mechanics/      Mechanic registry (empty until authored)
+  mechanics/      Mechanic registry (reserved Land handlers, unimplemented)
   levels/         Zod schema + validation
   state/          Authoritative session vs presentation state
   ui/             Accessibility + presentation contracts
@@ -176,3 +182,4 @@ npm run debug -- force data/dev/branching-smoke.json --cells hub=dev.spark-a,lef
 - Special Icons ≠ Special Matches.
 - Exactly eight Lands: Lumina, Glimmer, Bloomara, Transcendia, Quintara, Iridescia, Aurelia, Infinity Isles.
 - Extra Hard levels must remain solvable without Special Icons (mastery flag + architecture; no Extra Hard content yet).
+- 640 levels are future content. Content contracts live in `CONTENT_ARCHITECTURE.md`.

@@ -13,9 +13,13 @@ export interface ObstacleContext {
 export interface ObstacleHandler {
   type: string;
   implemented: boolean;
+  accessibilityDescription: string;
   blocksSwap: (instance: { durability: number; config: Record<string, unknown> }, cellId: CellId) => boolean;
   blocksMatchParticipation?: (instance: { durability: number }, cellId: CellId) => boolean;
+  blocksMovement?: (instance: { durability: number }, cellId: CellId) => boolean;
   onMatchesResolved: (instance: { type: string; durability: number; config: Record<string, unknown> }, ctx: ObstacleContext) => void;
+  onCascade?: (instance: { type: string; durability: number; config: Record<string, unknown> }, ctx: ObstacleContext) => void;
+  serialize?: (instance: { type: string; durability: number; config: Record<string, unknown> }) => Record<string, unknown>;
 }
 
 export class ObstacleRegistry {
@@ -55,6 +59,7 @@ export class ObstacleRegistry {
 const lockHandler: ObstacleHandler = {
   type: "lock",
   implemented: true,
+  accessibilityDescription: "Lock. Adjacent matches reduce durability. Pattern: closed padlock.",
   blocksSwap: () => true,
   onMatchesResolved(instance, ctx) {
     const adjacentMatch = ctx.matches.some((group) =>
@@ -69,6 +74,7 @@ const lockHandler: ObstacleHandler = {
 const iceHandler: ObstacleHandler = {
   type: "ice",
   implemented: true,
+  accessibilityDescription: "Ice. A match on this cell reduces durability. Pattern: cracked sheet.",
   blocksSwap: () => true,
   onMatchesResolved(instance, ctx) {
     const selfMatch = ctx.matches.some((group) => group.cellIds.includes(ctx.cellId));
@@ -82,6 +88,7 @@ function unimplemented(type: string): ObstacleHandler {
   return {
     type,
     implemented: false,
+    accessibilityDescription: `Reserved obstacle "${type}". Not implemented.`,
     blocksSwap: () => false,
     onMatchesResolved: () => {
       throw new Error(`Obstacle "${type}" is not implemented.`);

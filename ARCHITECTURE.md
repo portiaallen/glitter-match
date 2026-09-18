@@ -59,17 +59,19 @@ Two profiles:
 - `development` — allows `dev.*` fixture icons and `status: "development"` levels.
 - `production` — rejects development icons/levels, requires ordinary icons to belong to the level’s Land.
 
-`data/dev/branching-smoke.json` is the only fixture. It is not a campaign level.
+`data/dev/branching-smoke.json` is the only engine-level fixture. It is not a campaign level.
+
+**640 levels are future content. They are not part of this implementation.** See `CONTENT_ARCHITECTURE.md` for Level DNA, difficulty, Rule of Three, packs, Gates, and authoring boundaries.
 
 ## Icon and Land canon
 
-Ordinary match icons belong to exactly one Land. Duplicate ids are rejected at registration. Duplicate display names across Lands fail integrity validation.
+Ordinary match icons belong to exactly one Land. Each of the eight Lands has a registered eight-icon family. Duplicate ids are rejected at registration. Duplicate display names across Lands fail integrity validation. Reassignment requires an explicit content-version change.
 
 The Glitter Icon id is `glitter`, `kind: "glitter"`, `landId: null`.
 
-The eight Lands are fixed in `LAND_IDS`. No additional Lands are allowed. Families are empty until content authoring.
+The eight Lands are fixed in `LAND_IDS` with canonical questions. No additional Lands are allowed. Land mechanic handlers are reserved and unimplemented. The engine must not branch on `land === ...`.
 
-Special Icons are catalogued as universal inventory (`glitter-bomb`, `glitter-hammer`, `prism`, `wild-card`, `magic-swap`, `glitter-lightning`) with `implemented: false`. Using one as a move fails loudly.
+Special Icons are catalogued as universal inventory (`glitter-bomb`, `glitter-hammer`, `prism`, `wild-card`, `magic-swap`, `glitter-lightning`) with `implemented: false`. Using one as a move fails loudly. They are not Special Matches.
 
 ## Objectives and obstacles
 

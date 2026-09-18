@@ -11,3 +11,5 @@ Each file is a `BoardDocument`:
 - `topology.kind` is authoring vocabulary, not a special-case engine.
 
 A future designer can add a completely new shape by authoring another document like these — without changing the core matcher.
+
+These files must not become production Level DNA automatically. The content validator rejects `lab.*` ids and `data/lab/` paths under the production profile.

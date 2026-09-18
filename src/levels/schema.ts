@@ -13,6 +13,25 @@ import {
   sectionSchema,
   topologySchema,
 } from "../board/schema.js";
+import { difficultySchema } from "../difficulty/model.js";
+import {
+  levelMovementModelSchema,
+  pacingRoleSchema,
+  ruleOfThreeSchema,
+  symmetrySchema,
+  timerConfigSchema,
+} from "../dna/contracts.js";
+import { twistContractSchema } from "../twists/contract.js";
+import { discoveryContractSchema, secretContractSchema } from "../secrets/contract.js";
+import { gateReferenceSchema } from "../gates/contract.js";
+import {
+  museumReferenceSchema,
+  personalStoryReferenceSchema,
+  sanctuaryReferenceSchema,
+} from "../universe/references.js";
+import { levelAccessibilitySchema } from "../ui/level-accessibility.js";
+import { MATCH_CONTRACT_IDS } from "../matching/contracts.js";
+import { SCHEMA_VERSION } from "../content/versions.js";
 
 const objectiveSchema: z.ZodTypeAny = z.lazy(() =>
   z
@@ -32,6 +51,8 @@ const objectiveSchema: z.ZodTypeAny = z.lazy(() =>
       stages: z.array(objectiveSchema).optional(),
       children: z.array(objectiveSchema).optional(),
       mode: z.enum(["all", "any"]).optional(),
+      dependsOn: z.array(z.string().min(1)).optional(),
+      accessibilityLabel: z.string().optional(),
     })
     .strict(),
 );
@@ -44,22 +65,43 @@ const rewardSchema = z
   })
   .strict();
 
-const difficultySchema = z
+const expandedMatchRulesSchema = matchRulesSchema.extend({
+  contracts: z.array(z.enum(MATCH_CONTRACT_IDS)).optional(),
+  orientationLabels: z.record(z.array(z.string().min(1))).optional(),
+});
+
+const masterySchema = z
   .object({
-    cognitive: z.number().min(0).max(10).optional(),
-    spatial: z.number().min(0).max(10).optional(),
-    timing: z.number().min(0).max(10).optional(),
-    scarcity: z.number().min(0).max(10).optional(),
+    maxMovesUsed: z.number().int().positive().optional(),
+    minScore: z.number().int().nonnegative().optional(),
+    noSpecialIcons: z.boolean().optional(),
+    optionalObjectives: z.array(objectiveSchema).optional(),
+    rewardRef: z.string().optional(),
     notes: z.string().optional(),
   })
   .strict();
 
+/**
+ * Level DNA contract.
+ *
+ * Board Shape + Topology + Symmetry + Movement + Match Rules + Icon Pool +
+ * Objective + Obstacles + Land Mechanic + Difficulty + Twist + Secret +
+ * Mastery + Story + Rewards
+ *
+ * 640 campaign levels are future content. They are not part of this schema's
+ * implementation — only the contract that will author them later.
+ */
 export const levelDefinitionSchema = z
   .object({
     id: z.string().min(1),
     status: z.enum(["development", "production"]),
     land: z.enum(LAND_IDS),
     title: z.string().min(1),
+    schemaVersion: z.string().min(1).optional(),
+    contentVersion: z.string().min(1).optional(),
+    purpose: z.enum(["engine-fixture", "contract-fixture", "campaign"]).optional(),
+    shape: z.string().optional(),
+    symmetry: symmetrySchema.optional(),
     board: z
       .object({
         topology: topologySchema,
@@ -74,25 +116,37 @@ export const levelDefinitionSchema = z
       })
       .strict(),
     iconPool: z.array(z.string().min(1)).min(1),
-    matchRules: matchRulesSchema,
+    matchRules: expandedMatchRulesSchema,
     movementRules: movementSchema.optional(),
+    movementModel: levelMovementModelSchema.optional(),
     objective: objectiveSchema,
+    objectives: z.array(objectiveSchema).optional(),
     obstacles: z.array(obstaclePlacementSchema).optional(),
     mechanics: z.array(z.string()).optional(),
     difficulty: difficultySchema.optional(),
+    pacing: pacingRoleSchema.optional(),
+    ruleOfThree: ruleOfThreeSchema.optional(),
     moveLimit: z.number().int().positive().nullable(),
     timerMs: z.number().int().positive().nullable().optional(),
-    twist: z.string().optional(),
-    secret: z.string().optional(),
-    mastery: z
+    timer: timerConfigSchema.optional(),
+    twist: twistContractSchema.optional(),
+    secret: secretContractSchema.optional(),
+    discoveries: z.array(discoveryContractSchema).optional(),
+    mastery: masterySchema.optional(),
+    storyRef: personalStoryReferenceSchema.optional(),
+    sanctuaryRef: sanctuaryReferenceSchema.optional(),
+    museumRef: museumReferenceSchema.optional(),
+    gateRef: gateReferenceSchema.optional(),
+    rewards: z.array(rewardSchema).optional(),
+    accessibility: levelAccessibilitySchema.optional(),
+    validation: z
       .object({
-        maxMovesUsed: z.number().int().positive().optional(),
-        minScore: z.number().int().nonnegative().optional(),
-        noSpecialIcons: z.boolean().optional(),
+        author: z.string().optional(),
+        lastValidated: z.string().optional(),
+        notes: z.string().optional(),
       })
       .strict()
       .optional(),
-    rewards: z.array(rewardSchema).optional(),
     placement: z
       .object({
         mode: z.enum(["authored", "seeded-random"]),
@@ -122,3 +176,17 @@ export type LevelDefinition = z.infer<typeof levelDefinitionSchema>;
 export function parseLevelJson(input: unknown): LevelDefinition {
   return levelDefinitionSchema.parse(input);
 }
+
+export const LEVEL_DNA_REQUIRED_FOR_PRODUCTION = [
+  "schemaVersion",
+  "contentVersion",
+  "shape",
+  "symmetry",
+  "movementModel",
+  "difficulty",
+  "pacing",
+  "ruleOfThree",
+  "accessibility",
+] as const;
+
+export { SCHEMA_VERSION };
